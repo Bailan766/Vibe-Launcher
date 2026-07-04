@@ -8,12 +8,13 @@ import android.webkit.WebView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.concurrent.Executors;
+
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
 
     @Override
-    @SuppressWarnings("deprecation")
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setTitle(R.string.in_app_title);
@@ -26,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
         settings.setDomStorageEnabled(true);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
-        webView.setWebChromeClient(new WebChromeClient());
+        webView.setWebChromeClient(new WebChromeClient(Executors.newSingleThreadExecutor()));
 
         webView.addJavascriptInterface(new JsBridge(this, webView), "NativeBridge");
         webView.loadUrl("file:///android_asset/index.html");
@@ -42,7 +43,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     protected void onDestroy() {
         if (webView != null) {
             webView.destroy();

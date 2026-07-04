@@ -10,12 +10,12 @@ def hasReleaseSigning = signingKeystorePath && signingStorePassword && signingKe
 
 android {
     namespace 'com.dng.launcher'
-    compileSdk 35
+    compileSdk 37
 
     defaultConfig {
         applicationId "com.dng.launcher"
         minSdk 27
-        targetSdk 35
+        targetSdk 37
         versionCode 1
         versionName "1.0"
 
