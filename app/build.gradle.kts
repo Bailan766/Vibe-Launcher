@@ -33,5 +33,5 @@ android {
 
 dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.1.20")
+    // kotlin-stdlib provided by AGP built-in Kotlin (KGP 2.2.10)
 }
