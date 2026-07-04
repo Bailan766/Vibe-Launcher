@@ -1,4 +1,4 @@
-package com.example.rootwebviewdemo;
+package com.dng.launcher;
 
 import android.os.Bundle;
 import android.view.View;

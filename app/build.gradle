@@ -9,11 +9,11 @@ def signingKeyPassword = System.getenv("ANDROID_SIGNING_KEY_PASSWORD")
 def hasReleaseSigning = signingKeystorePath && signingStorePassword && signingKeyAlias && signingKeyPassword
 
 android {
-    namespace 'com.example.rootwebviewdemo'
+    namespace 'com.dng.launcher'
     compileSdk 35
 
     defaultConfig {
-        applicationId "com.example.rootwebviewdemo"
+        applicationId "com.dng.launcher"
         minSdk 27
         targetSdk 35
         versionCode 1

@@ -1,4 +1,4 @@
-package com.example.rootwebviewdemo;
+package com.dng.launcher;
 
 import android.content.Context;
 import android.content.Intent;
