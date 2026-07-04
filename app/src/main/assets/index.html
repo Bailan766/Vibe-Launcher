@@ -70,14 +70,19 @@
     <div class="loading-indicator" id="loadingIndicator">正在加载应用…</div>
 
 <script type="importmap">
-{ "imports": { "three": "https://unpkg.com/three@0.185.1/build/three.module.js" } }
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+    "three/webgpu": "https://unpkg.com/three@0.185.1/build/three.webgpu.js"
+  }
+}
 </script>
 
 <script type="module">
-import * as THREE from 'three';
+import * as THREE from 'three/webgpu';
 window.THREE = THREE;
 
-(function() {
+(async function() {
 console.log("IIFE starting, THREE:", typeof THREE);
             if (typeof THREE === 'undefined') {
                 document.getElementById('loadingIndicator').textContent = 'Three.js 未加载';
@@ -163,7 +168,8 @@ console.log("IIFE starting, THREE:", typeof THREE);
             scene.background = new THREE.Color(0x000000);
             var FAR_PLANE = 1e8;
             var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, FAR_PLANE);
-            var renderer = new THREE.WebGLRenderer({ antialias: true });
+            var renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL: false });
+await renderer.init();
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             if (renderer.outputColorSpace !== undefined) {
@@ -374,7 +380,7 @@ console.log("IIFE starting, THREE:", typeof THREE);
             function startTimeTextureUpdates() {
                 stopTimeTextureUpdates();
                 updateTimeSpriteTexture();
-                timeTextureUpdateInterval = setInterval(function() {
+                timeTextureUpdateInterval = setInterval(async function() {
                     if (timeSprite && timeSprite.material) {
                         updateTimeSpriteTexture();
                     }
@@ -668,7 +674,7 @@ console.log("IIFE starting, THREE:", typeof THREE);
 
                 enterTimeView(true, function() {
                     loadingEl.style.opacity = '0';
-                    setTimeout(function() { loadingEl.textContent = ''; }, 500);
+                    setTimeout(async function() { loadingEl.textContent = ''; }, 500);
                 });
             }
 
@@ -697,7 +703,7 @@ console.log("IIFE starting, THREE:", typeof THREE);
                     nativeBridgeReady = true;
                     NativeBridge.requestInstalledApps();
                 } else {
-                    setTimeout(function() {
+                    setTimeout(async function() {
                         if (typeof NativeBridge !== 'undefined' && NativeBridge.requestInstalledApps) {
                             nativeBridgeReady = true;
                             NativeBridge.requestInstalledApps();
@@ -1021,7 +1027,7 @@ console.log("IIFE starting, THREE:", typeof THREE);
                         }
                         var hs = hoveredSprite;
                         hs.scale.set(HOVER_SCALE * 1.15, HOVER_SCALE * 1.15, 1);
-                        setTimeout(function() {
+                        setTimeout(async function() {
                             if (hs === hoveredSprite && hs.userData.baseScale) {
                                 hs.scale.set(hs.userData.baseScale, hs.userData.baseScale, 1);
                             }
@@ -1145,7 +1151,7 @@ console.log("IIFE starting, THREE:", typeof THREE);
                         }
                     }
                     pinchStartDist = 0;
-                    if (wasPinching) setTimeout(function() { wasPinching = false; }, 400);
+                    if (wasPinching) setTimeout(async function() { wasPinching = false; }, 400);
                 }
             }
 
