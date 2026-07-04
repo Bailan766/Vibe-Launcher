@@ -16,6 +16,9 @@ import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.text.Collator
 import java.util.Locale
+import android.content.IntentFilter
+import android.os.BatteryManager
+import android.net.Uri
 import java.util.concurrent.Executors
 
 class JsBridge(context: Context, webView: WebView) {
@@ -40,7 +43,7 @@ class JsBridge(context: Context, webView: WebView) {
                 val ctx = contextRef.get() ?: return@execute
                 val pm = ctx.packageManager
                 val apps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
-                    .filter { pm.getLaunchIntentForPackage(it.packageName) != null }
+                    .filter { pm.getLaunchIntentForPackage(it.packageName) != null && it.packageName != "com.dng.launcher" }
                     .map {
                         AppInfo(
                             it.packageName,
@@ -105,6 +108,60 @@ class JsBridge(context: Context, webView: WebView) {
                 ctx.startActivity(it)
                 """{"success":true}"""
             } ?: """{"success":false,"error":"no launch activity"}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+        @JavascriptInterface
+    fun uninstallApp(packageName: String): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:$packageName"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(intent)
+            """{"success":true}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun openAppDetails(packageName: String): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val intent = Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:$packageName"))
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(intent)
+            """{"success":true}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun getBatteryLevel(): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val bm = ctx.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
+            val level = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            """{"success":true,"level":$level}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun isCharging(): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+            val intent = ctx.registerReceiver(null, filter)
+            val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+            val charging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                           status == BatteryManager.BATTERY_STATUS_FULL
+            """{"success":true,"charging":$charging,"status":$status}"""
         } catch (e: Exception) {
             """{"success":false,"error":"${e.message}"}"""
         }

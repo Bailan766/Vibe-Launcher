@@ -335,6 +335,27 @@ await renderer.init();
                 }
             }
 
+            // ========== 设置纹理 ==========
+            function createGearTexture() {
+                var s = 512, ca = document.createElement('canvas');
+                ca.width = s; ca.height = s;
+                var ctx = ca.getContext('2d'), cx = s/2, cy = s/2, rr = s * 0.44;
+                ctx.fillStyle = '#000000';
+                ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+                ctx.lineWidth = s * 0.012;
+                ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI*2); ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.font = 'bold ' + (s * 0.45) + 'px sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('⚙', cx, cy);
+                var tex = new THREE.CanvasTexture(ca);
+                tex.minFilter = THREE.LinearFilter;
+                tex.magFilter = THREE.LinearFilter;
+                if (tex.colorSpace !== undefined) tex.colorSpace = THREE.SRGBColorSpace;
+                return tex;
+            }
+
             // ========== 时间纹理 ==========
             function createTimeTexture() {
                 var s = Math.max(window.innerWidth, window.innerHeight);
@@ -596,6 +617,11 @@ await renderer.init();
                     data: { packageName: '__time__', appName: '时钟', isSystem: true },
                     colorIndex: appList.length
                 });
+                totalItems.push({
+                    type: 'settings',
+                    data: { packageName: '__settings__', appName: '设置', isSystem: true },
+                    colorIndex: appList.length + 1
+                });
 
                 var N = totalItems.length;
                 var rawPoints = sphereCoulomb(N, { radius: SPHERE_RADIUS, iter: 500 });
@@ -617,7 +643,16 @@ await renderer.init();
                     var item = totalItems[j];
                     var p = rotatedPoints[j];
 
-                    if (item.type === 'time') {
+                    if (item.type === 'settings') {
+                        var gearTex = createGearTexture();
+                        var gearMat = new THREE.SpriteMaterial({ map: gearTex, transparent: true, depthTest: true, depthWrite: true });
+                        var gearSprite = new THREE.Sprite(gearMat);
+                        gearSprite.position.copy(p);
+                        gearSprite.scale.set(BASE_SCALE, BASE_SCALE, 1);
+                        gearSprite.userData = { isTimeSprite: false, app: item.data, baseScale: BASE_SCALE };
+                        sphereGroup.add(gearSprite);
+                        sprites.push(gearSprite);
+                    } else if (item.type === 'time') {
                         var timeTex = createTimeTexture();
                         var timeMat = new THREE.SpriteMaterial({
                             map: timeTex,
@@ -837,11 +872,7 @@ await renderer.init();
                 var intersects = raycaster.intersectObjects(sprites);
                 var newHovered = intersects.length > 0 ? intersects[0].object : null;
                 if (hoveredSprite !== newHovered) {
-                    if (hoveredSprite && hoveredSprite.userData.baseScale) {
-                        hoveredSprite.scale.set(hoveredSprite.userData.baseScale, hoveredSprite.userData.baseScale, 1);
-                    }
                     if (newHovered) {
-                        newHovered.scale.set(HOVER_SCALE, HOVER_SCALE, 1);
                         document.body.style.cursor = 'pointer';
                         var app = getAppBySprite(newHovered);
                         if (app) {
@@ -1061,7 +1092,20 @@ await renderer.init();
                 if (activePointerIds.size === 0) {
                     if (isDragging && !hasMoved && hoveredSprite && !isInTimeView) {
                         var app = getAppBySprite(hoveredSprite);
-                        if (app && app.packageName === '__time__') {
+                        if (app && app.packageName === '__settings__') {
+                            // 旋转+拉近，和其它图标一样
+                            var targetDir = hoveredSprite.position.clone().normalize();
+                            var targetQuat = new THREE.Quaternion().setFromUnitVectors(targetDir, new THREE.Vector3(0, 0, 1));
+                            inertiaQ.identity();
+                            inertiaStrength = 0;
+                            infiniteInertia = false;
+                            var appZoom = computeTimeViewZoom();
+                            startRotationAnimation(targetQuat, 350);
+                            startZoomAnimation(appZoom, 350, function() {
+                                zoomLevel = appZoom;
+                                applyZoom();
+                            });
+                        } else if (app && app.packageName === '__time__') {
                             returnToTimeView();
                         } else if (app && !isInTimeView) {
                             // 旋转+拉近 → 启动应用
