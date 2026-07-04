@@ -86,6 +86,41 @@
             color:rgba(255,255,255,0.7);
         ">1月1日 周一</div>
     </div>
+    <div id="settings-overlay" style="
+        position:fixed; top:0; left:0; right:0; bottom:0;
+        background:rgba(0,0,0,0.85); z-index:40; display:none;
+        color:#fff; font-family:sans-serif;
+    ">
+        <div id="settings-back" style="
+            position:absolute; top:16px; left:16px; font-size:18px;
+            cursor:pointer; color:rgba(255,255,255,0.7);
+            padding:8px 12px;
+        ">← 返回</div>
+        <div style="position:absolute; top:18px; left:0; right:0; text-align:center; font-size:20px; font-weight:bold;">Vibe Launcher设置</div>
+        <div style="position:absolute; top:80px; left:20px; right:20px;">
+            <div style="margin-bottom:24px;">
+                <div style="margin-bottom:8px; font-size:15px; color:rgba(255,255,255,0.8);">图标分辨率</div>
+                <select id="settings-icon-res" style="width:100%; padding:12px; font-size:15px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px;">
+                    <option value="256">256px</option>
+                    <option value="512" selected>512px（默认）</option>
+                    <option value="1024">1024px（高清）</option>
+                </select>
+            </div>
+            <div style="margin-bottom:24px;">
+                <div style="margin-bottom:8px; font-size:15px; color:rgba(255,255,255,0.8);">3D球体大小</div>
+                <select id="settings-sphere-size" style="width:100%; padding:12px; font-size:15px; background:#1a1a2e; color:#fff; border:1px solid rgba(255,255,255,0.2); border-radius:8px;">
+                    <option value="2.0">小</option>
+                    <option value="2.5" selected>中（默认）</option>
+                    <option value="3.0">大</option>
+                </select>
+            </div>
+        </div>
+        <div id="settings-save" style="
+            position:absolute; bottom:40px; left:20px; right:20px;
+            padding:14px; text-align:center; font-size:16px; font-weight:bold;
+            background:#4a90d9; border-radius:10px; cursor:pointer;
+        ">保存</div>
+    </div>
     <div class="app-label" id="appLabel"></div>
     <div class="loading-indicator" id="loadingIndicator">正在加载应用…</div>
 
@@ -315,7 +350,9 @@ await renderer.init();
                 if (t >= 1) {
                     rotationQuat.copy(rotationAnimData.to);
                     sphereGroup.quaternion.copy(rotationQuat);
+                    var cb = rotationAnimData.callback;
                     rotationAnimData = null;
+                    if (cb) cb();
                 }
             }
 
@@ -1093,17 +1130,25 @@ await renderer.init();
                     if (isDragging && !hasMoved && hoveredSprite && !isInTimeView) {
                         var app = getAppBySprite(hoveredSprite);
                         if (app && app.packageName === '__settings__') {
-                            // 旋转+拉近，和其它图标一样
+                            // 旋转+拉近
                             var targetDir = hoveredSprite.position.clone().normalize();
                             var targetQuat = new THREE.Quaternion().setFromUnitVectors(targetDir, new THREE.Vector3(0, 0, 1));
                             inertiaQ.identity();
                             inertiaStrength = 0;
                             infiniteInertia = false;
                             var appZoom = computeTimeViewZoom();
-                            startRotationAnimation(targetQuat, 350);
+                            var rotDone = false, zoomDone = false;
+                            function showSettingsPanel() {
+                                if (rotDone && zoomDone) {
+                                    document.getElementById('settings-overlay').style.display = 'block';
+                                }
+                            }
+                            startRotationAnimation(targetQuat, 350, function() { rotDone = true; showSettingsPanel(); });
                             startZoomAnimation(appZoom, 350, function() {
                                 zoomLevel = appZoom;
                                 applyZoom();
+                                zoomDone = true;
+                                showSettingsPanel();
                             });
                         } else if (app && app.packageName === '__time__') {
                             returnToTimeView();
@@ -1310,6 +1355,7 @@ await renderer.init();
 
             // ========== 动画循环 ==========
             function animate(timestamp) {
+                initSettingsPanel();
                 requestAnimationFrame(animate);
                 var now = timestamp || performance.now();
                 updateZoomAnimation(now);
@@ -1404,6 +1450,48 @@ await renderer.init();
                 }
             });
 
+            function initSettingsPanel() {
+                var overlay = document.getElementById('settings-overlay');
+                var backBtn = document.getElementById('settings-back');
+                var saveBtn = document.getElementById('settings-save');
+                var iconResSelect = document.getElementById('settings-icon-res');
+                var sphereSizeSelect = document.getElementById('settings-sphere-size');
+
+                // Load from localStorage
+                var saved = {};
+                try { saved = JSON.parse(localStorage.getItem('vibe-settings') || '{}'); } catch(e) {}
+                if (saved.iconRes) iconResSelect.value = saved.iconRes;
+                if (saved.sphereSize) sphereSizeSelect.value = saved.sphereSize;
+
+                backBtn.addEventListener('click', function() {
+                    overlay.style.display = 'none';
+                    // 拉远摄像机
+                    startZoomAnimation(defaultZoom, 350, function() {
+                        zoomLevel = defaultZoom;
+                        applyZoom();
+                    });
+                });
+
+                saveBtn.addEventListener('click', function() {
+                    var settings = {
+                        iconRes: iconResSelect.value,
+                        sphereSize: sphereSizeSelect.value
+                    };
+                    localStorage.setItem('vibe-settings', JSON.stringify(settings));
+                    saveBtn.textContent = '已保存 ✓';
+                    saveBtn.style.background = '#2ecc71';
+                    setTimeout(function() {
+                        saveBtn.textContent = '保存';
+                        saveBtn.style.background = '#4a90d9';
+                    }, 1500);
+                    // Apply sphere size
+                    if (sphereGroup) {
+                        SPHERE_RADIUS = parseFloat(settings.sphereSize);
+                        sphereGroup.scale.setScalar(SPHERE_RADIUS / 2.5);
+                    }
+                });
+            }
+
             function init() {
                 zoomLevel = computeInitDistance();
                 defaultZoom = zoomLevel;
@@ -1411,6 +1499,7 @@ await renderer.init();
                 camera.position.set(0, 0, zoomLevel);
                 applyZoom();
                 isInTimeView = false;
+                initSettingsPanel();
                 requestAnimationFrame(animate);
                 tryLoadApps();
                 console.log('🚀 3D 桌面已就绪');
