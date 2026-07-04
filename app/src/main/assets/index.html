@@ -3,303 +3,661 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>DNG Launcher</title>
+    <title>3D 桌面</title>
     <style>
-        * { margin:0;padding:0;box-sizing:border-box; }
-        html,body{width:100%;height:100%;overflow:hidden;background:#000;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;}
-        body:active{cursor:grabbing;}
-        canvas{display:block;width:100%;height:100%;}
-        #searchWrap{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:10;width:70%;max-width:360px;}
-        #searchInput{width:100%;padding:10px 18px;border:none;border-radius:24px;background:rgba(30,30,30,0.85);color:#fff;font-size:15px;outline:none;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);text-align:center;transition:background .3s;}
-        #searchInput:focus{background:rgba(50,50,50,0.9);}
-        #searchInput::placeholder{color:#888;}
-        #appName{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);z-index:10;color:#fff;font-size:16px;font-weight:600;text-shadow:0 0 20px rgba(255,255,255,0.6);pointer-events:none;transition:opacity .2s;opacity:0;}
-        #appName.show{opacity:1;}
-        #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(50,50,50,0.9);color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20;}
-        #toast.show{opacity:1;}
-        #loadingHint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#666;font-size:16px;z-index:5;transition:opacity .4s;}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000000;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: none;
+            font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+
+        body:active {
+            cursor: grabbing;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .app-label {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10;
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 500;
+            background: rgba(0, 0, 0, 0.75);
+            padding: 6px 12px;
+            border-radius: 8px;
+            letter-spacing: 0.03em;
+            opacity: 0;
+            transform: translate(-50%, -130%);
+            transition: opacity 0.15s ease;
+            white-space: nowrap;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        }
+
+        .app-label.visible {
+            opacity: 1;
+        }
+
+        .loading-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+            letter-spacing: 0.05em;
+            z-index: 20;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
     </style>
 </head>
 <body>
-<div id="searchWrap"><input id="searchInput" type="text" placeholder="搜索应用..." autocomplete="off"></div>
-<div id="appName"></div>
-<div id="toast"></div>
-<div id="loadingHint">正在加载...</div>
-<script src="three.min.js"></script>
-<script>
-console.log("Three.js loaded, THREE:", typeof THREE);
-window.onerror = function(m,s,l,c,e){
-  console.error("JS_ERROR: "+m+" at "+s+":"+l+"\\n"+(e&&e.stack||""));
-};
-(function(){
-var THREE = window.THREE;
-if(!THREE){ console.error("THREE not found!"); return; }
-console.log("THREE version:", THREE.REVISION);
 
-var scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
-var FAR_PLANE = 1e8;
-var camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, FAR_PLANE);
-var renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-document.body.appendChild(renderer.domElement);
+    <div class="app-label" id="appLabel"></div>
+    <div class="loading-indicator" id="loadingIndicator">正在加载应用…</div>
 
-scene.add(new THREE.AmbientLight(0x8899bb, 2.2));
-var d1 = new THREE.DirectionalLight(0xffffff, 1.6); d1.position.set(2,3,5); scene.add(d1);
-var d2 = new THREE.DirectionalLight(0x8899cc, 0.8); d2.position.set(-3,-1,-2); scene.add(d2);
+    <script src="three.min.js"></script>
+    <script>
+        (function() {
+            if (typeof THREE === 'undefined') {
+                document.getElementById('loadingIndicator').textContent = 'Three.js 未加载';
+                return;
+            }
 
-var sphereGroup = new THREE.Group(); scene.add(sphereGroup);
+            var labelEl = document.getElementById('appLabel');
+            var loadingEl = document.getElementById('loadingIndicator');
 
-var apps = [], filteredApps = [], iconUrlMap = {}, sprites = [], spriteDataMap = new Map();
-var MAX_ICONS = 100, SPHERE_RADIUS = 2.5, BASE_SCALE = 0.55;
-var FOV_RAD = THREE.MathUtils.degToRad(50), MIN_ZOOM = 0.1;
+            // ========== 场景 ==========
+            var scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
 
-function computeInitDistance() {
-    var w = window.innerWidth, h = window.innerHeight, aspect = w/h;
-    return (SPHERE_RADIUS*2)/(2*Math.tan(FOV_RAD/2)*Math.min(1,aspect))*1.15;
-}
-var zoomLevel = computeInitDistance();
-camera.position.set(0,0,zoomLevel);
+            var FAR_PLANE = 1e8;
+            var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, FAR_PLANE);
 
-window.addEventListener('resize',function(){
-    renderer.setSize(window.innerWidth,window.innerHeight);
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-});
+            var renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            if (renderer.outputColorSpace !== undefined) {
+                renderer.outputColorSpace = THREE.SRGBColorSpace;
+            }
+            document.body.appendChild(renderer.domElement);
+            var canvas = renderer.domElement;
 
-var rotationQuat = new THREE.Quaternion();
-var isDragging = false, hasMoved = false, DRAG_THRESHOLD = 3;
-var prevScreen = new THREE.Vector2();
-var inertiaQ = new THREE.Quaternion(), inertiaStrength = 0;
-var INERTIA_DECAY = 0.975, INERTIA_FAST_DECAY = 0.85, INERTIA_MIN = 0.0005;
-var recentSpeeds = [];
+            // 光照
+            scene.add(new THREE.AmbientLight(0x8899bb, 2.4));
+            var dl = new THREE.DirectionalLight(0xffffff, 1.8);
+            dl.position.set(2, 3, 5);
+            scene.add(dl);
+            var d2 = new THREE.DirectionalLight(0x8899cc, 0.9);
+            d2.position.set(-3, -1, -2);
+            scene.add(d2);
 
-var raycaster = new THREE.Raycaster();
-raycaster.params.Sprite = {threshold:0.8};
-var mouse = new THREE.Vector2();
-var hoveredSprite = null, hoveredIndex = -1;
+            var sphereGroup = new THREE.Group();
+            scene.add(sphereGroup);
 
-var appNameEl = document.getElementById('appName');
-var toastEl = document.getElementById('toast');
-var loadingHint = document.getElementById('loadingHint');
+            // ========== 常量 ==========
+            var SPHERE_RADIUS = 2.5;
+            var SPHERE_DIAMETER = SPHERE_RADIUS * 2;
+            var BASE_SCALE = 0.52;
+            var HOVER_SCALE = 0.72;
+            var FOV_RAD = THREE.MathUtils.degToRad(50);
+            var MIN_ZOOM = 0.1;
 
-function screenToSphere(sx,sy){
-    var rect = renderer.domElement.getBoundingClientRect();
-    var nx = (sx-rect.left)/rect.width, ny = (sy-rect.top)/rect.height;
-    var v = new THREE.Vector3(nx*2-1, -(ny*2-1), 0);
-    var aspect = rect.width/rect.height; v.x *= aspect;
-    var magSq = v.x*v.x+v.y*v.y;
-    if(magSq<=1.0) v.z = Math.sqrt(1.0-magSq);
-    else { var inv = 1.0/Math.sqrt(magSq); v.x*=inv; v.y*=inv; v.z=0; }
-    return v.normalize();
-}
+            function computeInitDistance() {
+                var w = window.innerWidth;
+                var h = window.innerHeight;
+                var shortEdgeFactor = Math.min(1, w / h);
+                var minVisible = SPHERE_DIAMETER / (2 * Math.tan(FOV_RAD / 2) * shortEdgeFactor);
+                return minVisible * 1.15;
+            }
 
-function checkHover(){
-    raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects(sprites);
-    var newHovered = intersects.length>0 ? intersects[0].object : null;
-    var newIdx = newHovered ? (spriteDataMap.get(newHovered)||{}).index : -1;
-    if(hoveredIndex !== newIdx){
-        if(hoveredIndex>=0 && sprites[hoveredIndex]) sprites[hoveredIndex].material.opacity = 0.85;
-        if(newIdx>=0 && sprites[newIdx]){
-            sprites[newIdx].material.opacity = 1.0;
-            appNameEl.textContent = (filteredApps[newIdx]||{}).appName || '';
-            appNameEl.classList.add('show');
-        } else appNameEl.classList.remove('show');
-        hoveredSprite = newHovered; hoveredIndex = newIdx;
-    }
-}
+            var zoomLevel = computeInitDistance();
+            var defaultZoom = zoomLevel;
+            camera.position.set(0, 0, zoomLevel);
 
-var activePointers = 0;
-function onPointerDown(e){
-    activePointers++;
-    if(activePointers===1){
-        isDragging=true; hasMoved=false;
-        prevScreen.set(e.clientX,e.clientY);
-        updateMouse(e.clientX,e.clientY);
-        checkHover();
-    } else { isDragging=false; hasMoved=false; appNameEl.classList.remove('show'); }
-}
-function updateMouse(x,y){
-    var rect = renderer.domElement.getBoundingClientRect();
-    mouse.x=((x-rect.left)/rect.width)*2-1;
-    mouse.y=-((y-rect.top)/rect.height)*2+1;
-}
-function onPointerMove(e){
-    updateMouse(e.clientX,e.clientY);
-    if(!hasMoved||activePointers!==1) checkHover();
-    if(!isDragging||activePointers!==1) return;
-    var curr = new THREE.Vector2(e.clientX,e.clientY);
-    var dist = Math.sqrt(prevScreen.distanceToSquared(curr));
-    if(!hasMoved&&dist>DRAG_THRESHOLD){hasMoved=true;appNameEl.classList.remove('show');recentSpeeds=[];}
-    if(!hasMoved||dist<0.5) return;
-    var p0=screenToSphere(prevScreen.x,prevScreen.y), p1=screenToSphere(curr.x,curr.y);
-    var deltaQ=new THREE.Quaternion().setFromUnitVectors(p0,p1);
-    rotationQuat.premultiply(deltaQ); rotationQuat.normalize();
-    sphereGroup.quaternion.copy(rotationQuat);
-    var speed=2*Math.acos(Math.min(1,Math.abs(deltaQ.w)));
-    recentSpeeds.push(speed); if(recentSpeeds.length>5) recentSpeeds.shift();
-    inertiaQ.copy(deltaQ); prevScreen.copy(curr);
-}
-function onPointerUp(e){
-    activePointers=Math.max(0,activePointers-1);
-    if(isDragging&&hasMoved){
-        if(recentSpeeds.length>0){inertiaStrength=Math.min(1.5,Math.max(0.3,recentSpeeds.reduce(function(a,b){return a+b;},0)/recentSpeeds.length*80));}
-        recentSpeeds=[];
-    }
-    isDragging=false; hasMoved=false;
-    appNameEl.classList.remove('show');
-}
-window.addEventListener('pagehide',function(){isDragging=false;hasMoved=false;activePointers=0;});
-window.addEventListener('pageshow',function(){isDragging=false;hasMoved=false;activePointers=0;});
-function onWheel(e){
-    e.preventDefault(); zoomLevel+=e.deltaY*0.01; zoomLevel=Math.max(MIN_ZOOM,zoomLevel); camera.position.z=zoomLevel;
-}
-function onClick(e){
-    if(hasMoved) return;
-    if(hoveredIndex>=0 && hoveredIndex<filteredApps.length){
-        var app = filteredApps[hoveredIndex];
-        showToast('启动 '+app.appName+'...');
-        try{JSON.parse(NativeBridge.launchApp(app.packageName));}catch(e){}
-    }
-}
-function showToast(msg){toastEl.textContent=msg;toastEl.classList.add('show');clearTimeout(toastEl._t);toastEl._t=setTimeout(function(){toastEl.classList.remove('show');},2000);}
+            function applyZoom() { camera.position.z = zoomLevel; }
 
-var pinchStartDist=0,pinchStartZoom=7;
-function onTouchStart(e){
-    if(e.touches.length===2){pinchStartDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);pinchStartZoom=zoomLevel;isDragging=false;hasMoved=false;}
-}
-function onTouchMove(e){
-    if(e.touches.length===2){e.preventDefault();var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pinchStartDist>0){zoomLevel=pinchStartZoom*(pinchStartDist/d);zoomLevel=Math.max(MIN_ZOOM,zoomLevel);camera.position.z=zoomLevel;}}
-}
+            // ========== Fibonacci ==========
+            function fibonacciSphere(n, radius) {
+                var pts = [];
+                var phi = Math.PI * (3 - Math.sqrt(5));
+                var count = Math.max(n, 1);
+                for (var i = 0; i < n; i++) {
+                    var y = 1 - (i / (count - 1 || 1)) * 2;
+                    var rY = Math.sqrt(Math.max(0, 1 - y * y));
+                    var th = phi * i;
+                    pts.push({ x: Math.cos(th) * rY * radius, y: y * radius, z: Math.sin(th) * rY * radius });
+                }
+                return pts;
+            }
 
-var canvas = renderer.domElement;
-canvas.addEventListener('pointerdown',onPointerDown);
-canvas.addEventListener('pointermove',onPointerMove);
-canvas.addEventListener('pointerup',onPointerUp);
-canvas.addEventListener('pointerleave',onPointerUp);
-canvas.addEventListener('click',onClick);
-canvas.addEventListener('wheel',onWheel,{passive:false});
-canvas.addEventListener('touchstart',onTouchStart,{passive:false});
-canvas.addEventListener('touchmove',onTouchMove,{passive:false});
+            // ========== 纹理 ==========
+            var placeholderColors = [
+                '#ff6b6b', '#ff8e72', '#ffa94d', '#ffd43b', '#a9e34b',
+                '#69db7c', '#38d9a9', '#3bc9db', '#4dabf7', '#5c7cfa',
+                '#748ffc', '#9775fa', '#da77f2', '#f783ac', '#ff8787',
+                '#ffb8a8', '#ffc078', '#ffe066', '#c0eb75', '#8ce99a',
+                '#63e6be', '#66d9e8', '#74c0fc', '#91a7ff', '#b197fc',
+            ];
 
-window._onAppsLoaded = function(result){
-    console.log("_onAppsLoaded count:", result.apps?result.apps.length:0);
-    if(!result.success) return;
-    apps = result.apps.slice(0, MAX_ICONS);
-    filteredApps = apps;
-    buildSphere();
-    loadingHint.style.opacity = '0';
-    setTimeout(function(){loadingHint.remove();}, 500);
-    requestVisibleIcons();
-};
+            function createPlaceholderTexture(appName, colorHex) {
+                var s = 128,
+                    c = document.createElement('canvas');
+                c.width = s;
+                c.height = s;
+                var ctx = c.getContext('2d'),
+                    cx = s / 2,
+                    cy = s / 2,
+                    r = s * 0.44;
+                ctx.fillStyle = colorHex + '33';
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = colorHex + 'aa';
+                ctx.lineWidth = s * 0.03;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+                var initial = (appName || '?').charAt(0).toUpperCase();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold ' + (s * 0.5) + 'px "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.shadowColor = colorHex;
+                ctx.shadowBlur = s * 0.1;
+                ctx.fillText(initial, cx, cy);
+                ctx.shadowBlur = 0;
+                var tex = new THREE.CanvasTexture(c);
+                tex.minFilter = THREE.LinearFilter;
+                tex.magFilter = THREE.LinearFilter;
+                if (tex.colorSpace !== undefined) tex.colorSpace = THREE.SRGBColorSpace;
+                return tex;
+            }
 
-window._onIconsLoaded = function(results){
-    console.log("_onIconsLoaded count:", results.length);
-    for(var i=0;i<results.length;i++){
-        var r = results[i]; iconUrlMap[r.packageName] = r.iconUrl;
-        for(var j=0;j<filteredApps.length;j++){
-            if(filteredApps[j].packageName===r.packageName && sprites[j])
-                loadSpriteTexture(sprites[j], r.iconUrl, j);
-        }
-    }
-};
+            function createIconTextureFromImage(img) {
+                var s = 128,
+                    cx = s / 2,
+                    cy = s / 2,
+                    r = s * 0.44,
+                    margin = s * 0.04;
+                var c2 = document.createElement('canvas');
+                c2.width = s;
+                c2.height = s;
+                var ctx2 = c2.getContext('2d');
+                ctx2.beginPath();
+                ctx2.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx2.clip();
+                var imgSize = Math.min(img.width, img.height);
+                var sx = (img.width - imgSize) / 2,
+                    sy = (img.height - imgSize) / 2;
+                ctx2.drawImage(img, sx, sy, imgSize, imgSize, margin, margin, s - margin * 2, s - margin * 2);
+                ctx2.beginPath();
+                ctx2.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx2.strokeStyle = 'rgba(255,255,255,0.35)';
+                ctx2.lineWidth = s * 0.025;
+                ctx2.stroke();
+                var tex = new THREE.CanvasTexture(c2);
+                tex.minFilter = THREE.LinearFilter;
+                tex.magFilter = THREE.LinearFilter;
+                if (tex.colorSpace !== undefined) tex.colorSpace = THREE.SRGBColorSpace;
+                return tex;
+            }
 
-function requestVisibleIcons(){
-    var batch = [];
-    for(var i=0;i<filteredApps.length;i++){
-        if(!iconUrlMap[filteredApps[i].packageName]) batch.push(filteredApps[i].packageName);
-    }
-    console.log("requestIcons batch:", batch.length);
-    if(batch.length>0) NativeBridge.requestAppIcons(JSON.stringify(batch));
-}
+            // ========== Sprites ==========
+            var apps = [];
+            var sprites = [];
 
-function fibonacciSphere(n, radius){
-    var pts=[], phi=Math.PI*(3-Math.sqrt(5));
-    for(var i=0;i<n;i++){
-        var y=1-(i/(n-1))*2, rY=Math.sqrt(1-y*y), th=phi*i;
-        pts.push({x:Math.cos(th)*rY*radius, y:y*radius, z:Math.sin(th)*rY*radius});
-    }
-    return pts;
-}
+            function clearAllSprites() {
+                for (var i = 0; i < sprites.length; i++) {
+                    var s = sprites[i];
+                    if (s.material) {
+                        if (s.material.map) s.material.map.dispose();
+                        s.material.dispose();
+                    }
+                    sphereGroup.remove(s);
+                }
+                sprites = [];
+            }
 
-function createPlaceholderTexture(letter, colorHex){
-    var s=128, c=document.createElement('canvas'); c.width=s; c.height=s;
-    var ctx=c.getContext('2d'), cx=s/2, cy=s/2, r=s*0.42;
-    ctx.fillStyle=colorHex+'22'; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle=colorHex+'99'; ctx.lineWidth=s*0.028; ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
-    ctx.fillStyle='#fff'; ctx.font='bold '+Math.round(s*0.46)+'px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.shadowColor=colorHex; ctx.shadowBlur=s*0.08; ctx.fillText(letter,cx,cy);
-    var tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter;
-    return tex;
-}
+            function createSprites(appList, iconMap) {
+                clearAllSprites();
+                var n = appList.length;
+                if (n === 0) { loadingEl.textContent = '没有找到应用'; return; }
+                var pts = fibonacciSphere(n, SPHERE_RADIUS);
+                for (var i = 0; i < n; i++) {
+                    var app = appList[i];
+                    var p = pts[i];
+                    var color = placeholderColors[i % placeholderColors.length];
+                    var placeholderTex = createPlaceholderTexture(app.appName, color);
+                    var mat = new THREE.SpriteMaterial({ map: placeholderTex, transparent: true, depthTest: true,
+                        depthWrite: true });
+                    var sprite = new THREE.Sprite(mat);
+                    sprite.position.set(p.x, p.y, p.z);
+                    sprite.scale.set(BASE_SCALE, BASE_SCALE, 1);
+                    sprite.userData = { app: app, color: color, hasRealIcon: false };
+                    sphereGroup.add(sprite);
+                    sprites.push(sprite);
+                    if (iconMap && iconMap[app.packageName]) {
+                        loadRealIcon(sprite, iconMap[app.packageName]);
+                    }
+                }
+                loadingEl.style.opacity = '0';
+                setTimeout(function() { loadingEl.textContent = ''; }, 500);
+            }
 
-function loadSpriteTexture(sprite, iconUrl, index){
-    var img = new Image();
-    img.onload = function(){
-        var s=128, c=document.createElement('canvas'); c.width=s; c.height=s;
-        var ctx=c.getContext('2d'), cx=s/2, cy=s/2, r=s*0.42;
-        ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.clip();
-        ctx.drawImage(img,0,0,s,s); ctx.restore();
-        ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=s*0.025;
-        ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
-        var tex=new THREE.CanvasTexture(c); tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter;
-        sprite.material.map = tex; sprite.material.needsUpdate = true;
-    };
-    img.src = iconUrl;
-}
+            function loadRealIcon(sprite, iconUrl) {
+                var img = new Image();
+                img.onload = function() {
+                    try {
+                        var tex = createIconTextureFromImage(img);
+                        if (sprite.material && sprite.material.map && !sprite.userData.hasRealIcon) {
+                            sprite.material.map.dispose();
+                        }
+                        sprite.material.map = tex;
+                        sprite.material.needsUpdate = true;
+                        sprite.userData.hasRealIcon = true;
+                    } catch (e) { console.warn('图标处理失败:', iconUrl, e); }
+                };
+                img.onerror = function() { console.warn('图标加载失败:', iconUrl); };
+                img.src = iconUrl;
+            }
 
-var palette = ['#ff6b6b','#ff8e72','#ffa94d','#ffd43b','#a9e34b','#69db7c','#38d9a9','#3bc9db','#4dabf7','#5c7cfa','#748ffc','#9775fa','#da77f2','#f783ac','#ff8787'];
+            // ========== NativeBridge ==========
+            var nativeBridgeReady = false;
 
-function buildSphere(){
-    for(var i=0;i<sprites.length;i++) sphereGroup.remove(sprites[i]);
-    sprites = []; spriteDataMap = new Map();
-    var points = fibonacciSphere(filteredApps.length, SPHERE_RADIUS);
-    for(var i=0;i<filteredApps.length;i++){
-        var p=points[i], app=filteredApps[i], color=palette[i%palette.length];
-        var tex=createPlaceholderTexture(app.appName.charAt(0).toUpperCase(), color);
-        var mat=new THREE.SpriteMaterial({map:tex,transparent:true,opacity:0.85,depthTest:true,depthWrite:true});
-        var sprite=new THREE.Sprite(mat);
-        sprite.position.set(p.x,p.y,p.z);
-        sprite.scale.set(BASE_SCALE,BASE_SCALE,1);
-        spriteDataMap.set(sprite, {index:i});
-        sphereGroup.add(sprite);
-        sprites.push(sprite);
-    }
-    console.log("buildSphere done, sprites:", sprites.length);
-}
+            function tryLoadApps() {
+                if (typeof NativeBridge !== 'undefined' && NativeBridge.requestInstalledApps) {
+                    nativeBridgeReady = true;
+                    NativeBridge.requestInstalledApps();
+                } else {
+                    setTimeout(function() {
+                        if (typeof NativeBridge !== 'undefined' && NativeBridge.requestInstalledApps) {
+                            nativeBridgeReady = true;
+                            NativeBridge.requestInstalledApps();
+                        } else {
+                            loadingEl.textContent = 'NativeBridge 不可用，使用演示数据';
+                            createDemoApps();
+                        }
+                    }, 800);
+                }
+            }
 
-var searchTimer;
-document.getElementById('searchInput').addEventListener('input', function(){
-    clearTimeout(searchTimer);
-    var self = this;
-    searchTimer = setTimeout(function(){
-        var q = self.value.trim().toLowerCase();
-        if(!q) filteredApps = apps;
-        else filteredApps = apps.filter(function(a){return a.appName.toLowerCase().indexOf(q)!==-1||a.packageName.toLowerCase().indexOf(q)!==-1;});
-        iconUrlMap = {}; buildSphere(); requestVisibleIcons();
-    }, 300);
-});
+            function createDemoApps() {
+                var demoNames = [
+                    '微信', 'QQ', '淘宝', '支付宝', '抖音', '美团', '饿了么', 'B站', '知乎', '微博',
+                    '网易云', '高德', '百度', '京东', '拼多多', '小红书', '快手', '滴滴', '闲鱼', '携程',
+                    '酷狗', 'UC', 'WPS', '钉钉', '飞书',
+                ];
+                var demoApps = [];
+                for (var i = 0; i < demoNames.length; i++) {
+                    demoApps.push({ packageName: 'com.demo.' + demoNames[i].toLowerCase(), appName: demoNames[i],
+                        isSystem: false });
+                }
+                apps = demoApps;
+                createSprites(demoApps, null);
+            }
 
-function animate(){
-    requestAnimationFrame(animate);
-    if(inertiaStrength>INERTIA_MIN){
-        var factor=Math.min(inertiaStrength,1.0);
-        var applyQ=new THREE.Quaternion().slerpQuaternions(new THREE.Quaternion(),inertiaQ,factor);
-        rotationQuat.premultiply(applyQ); rotationQuat.normalize();
-        sphereGroup.quaternion.copy(rotationQuat);
-        inertiaStrength*=(isDragging&&hasMoved)?INERTIA_FAST_DECAY:INERTIA_DECAY;
-        if(inertiaStrength<INERTIA_MIN){inertiaStrength=0;inertiaQ.identity();}
-    }
-    renderer.render(scene,camera);
-}
-animate();
+            window._onAppsLoaded = function(json) {
+                try {
+                    var data = typeof json === 'string' ? JSON.parse(json) : json;
+                    if (data.success && data.apps && data.apps.length > 0) {
+                        apps = data.apps;
+                        loadingEl.textContent = '正在加载图标…';
+                        createSprites(apps, null);
+                        var pkgs = [];
+                        for (var i = 0; i < apps.length; i++) pkgs.push(apps[i].packageName);
+                        if (nativeBridgeReady) NativeBridge.requestAppIcons(JSON.stringify(pkgs));
+                    } else { loadingEl.textContent = '没有找到应用'; }
+                } catch (e) { console.error('解析应用列表失败:', e);
+                    loadingEl.textContent = '加载失败'; }
+            };
 
-console.log("Calling NativeBridge.requestInstalledApps...");
-NativeBridge.requestInstalledApps();
-})();
-</script>
+            window._onIconsLoaded = function(json) {
+                try {
+                    var iconData = typeof json === 'string' ? JSON.parse(json) : json;
+                    var iconMap = {};
+                    if (Array.isArray(iconData)) {
+                        for (var i = 0; i < iconData.length; i++) {
+                            var item = iconData[i];
+                            if (item.packageName && item.iconUrl) iconMap[item.packageName] = item.iconUrl;
+                        }
+                    }
+                    for (var j = 0; j < sprites.length; j++) {
+                        var sprite = sprites[j];
+                        var app = sprite.userData.app;
+                        if (app && iconMap[app.packageName] && !sprite.userData.hasRealIcon) {
+                            loadRealIcon(sprite, iconMap[app.packageName]);
+                        }
+                    }
+                } catch (e) { console.error('解析图标数据失败:', e); }
+            };
+
+            // ========== 旋转 ==========
+            var rotationQuat = new THREE.Quaternion();
+            var isDragging = false;
+            var hasMoved = false;
+            var DRAG_THRESHOLD = 3;
+            var prevScreen = new THREE.Vector2();
+            var inertiaQ = new THREE.Quaternion();
+            var inertiaStrength = 0;
+            var INERTIA_DECAY = 0.975;
+            var INERTIA_FAST_DECAY = 0.85;
+            var INERTIA_MIN = 0.0005;
+            var recentSpeeds = [];
+            var SPEED_SAMPLES = 5;
+            var activePointerIds = new Set(); // 用 Set 追踪活跃指针
+
+            var raycaster = new THREE.Raycaster();
+            raycaster.params.Sprite = { threshold: 0.8 };
+            var mouse = new THREE.Vector2();
+            var hoveredSprite = null;
+
+            function screenToSphere(sx, sy) {
+                var rect = canvas.getBoundingClientRect();
+                var nx = (sx - rect.left) / rect.width;
+                var ny = (sy - rect.top) / rect.height;
+                var v = new THREE.Vector3();
+                v.x = nx * 2 - 1;
+                v.y = -(ny * 2 - 1);
+                var a = rect.width / rect.height;
+                v.x *= a;
+                var magSq = v.x * v.x + v.y * v.y;
+                if (magSq <= 1.0) v.z = Math.sqrt(1.0 - magSq);
+                else { var inv = 1.0 / Math.sqrt(magSq);
+                    v.x *= inv;
+                    v.y *= inv;
+                    v.z = 0; }
+                return v.normalize();
+            }
+
+            function updateMouse(cx, cy) {
+                var rect = canvas.getBoundingClientRect();
+                mouse.x = ((cx - rect.left) / rect.width) * 2 - 1;
+                mouse.y = -((cy - rect.top) / rect.height) * 2 + 1;
+            }
+
+            function getAppBySprite(s) { return s && s.userData ? s.userData.app : null; }
+
+            function checkHover(e) {
+                raycaster.setFromCamera(mouse, camera);
+                var intersects = raycaster.intersectObjects(sprites);
+                var newHovered = intersects.length > 0 ? intersects[0].object : null;
+                if (hoveredSprite !== newHovered) {
+                    if (hoveredSprite) hoveredSprite.scale.set(BASE_SCALE, BASE_SCALE, 1);
+                    if (newHovered) {
+                        newHovered.scale.set(HOVER_SCALE, HOVER_SCALE, 1);
+                        document.body.style.cursor = 'pointer';
+                        var app = getAppBySprite(newHovered);
+                        if (app) {
+                            labelEl.textContent = app.appName;
+                            labelEl.classList.add('visible');
+                            if (e) { labelEl.style.left = e.clientX + 'px';
+                                labelEl.style.top = e.clientY + 'px'; }
+                        }
+                    } else {
+                        document.body.style.cursor = isDragging ? 'grabbing' : 'grab';
+                        labelEl.classList.remove('visible');
+                    }
+                    hoveredSprite = newHovered;
+                } else if (hoveredSprite && e) {
+                    labelEl.style.left = e.clientX + 'px';
+                    labelEl.style.top = e.clientY + 'px';
+                }
+            }
+
+            function clearHover() {
+                if (hoveredSprite) { hoveredSprite.scale.set(BASE_SCALE, BASE_SCALE, 1);
+                    hoveredSprite = null; }
+                labelEl.classList.remove('visible');
+            }
+
+            function quatAngle(q) { return 2 * Math.acos(Math.min(1, Math.abs(q.w))); }
+
+            function startInertiaFromSpeeds() {
+                if (recentSpeeds.length > 0) {
+                    var sum = 0;
+                    for (var i = 0; i < recentSpeeds.length; i++) sum += recentSpeeds[i];
+                    inertiaStrength = Math.min(1.5, Math.max(0.3, (sum / recentSpeeds.length) * 80));
+                } else inertiaStrength = 0.6;
+                recentSpeeds = [];
+            }
+
+            function resetAllPointers() {
+                // 强制清理所有指针状态
+                activePointerIds.clear();
+                isDragging = false;
+                hasMoved = false;
+                document.body.style.cursor = hoveredSprite ? 'pointer' : 'grab';
+            }
+
+            function onPointerDown(e) {
+                activePointerIds.add(e.pointerId);
+                if (activePointerIds.size === 1) {
+                    isDragging = true;
+                    hasMoved = false;
+                    prevScreen.set(e.clientX, e.clientY);
+                    document.body.style.cursor = 'grabbing';
+                    updateMouse(e.clientX, e.clientY);
+                    checkHover(e);
+                } else {
+                    isDragging = false;
+                    hasMoved = false;
+                    clearHover();
+                    document.body.style.cursor = 'grab';
+                }
+            }
+
+            function onPointerMove(e) {
+                updateMouse(e.clientX, e.clientY);
+                if (!hasMoved || activePointerIds.size !== 1) checkHover(e);
+                if (!isDragging || activePointerIds.size !== 1) return;
+                var curr = new THREE.Vector2(e.clientX, e.clientY);
+                var dist = Math.sqrt(prevScreen.distanceToSquared(curr));
+                if (!hasMoved && dist > DRAG_THRESHOLD) {
+                    hasMoved = true;
+                    clearHover();
+                    document.body.style.cursor = 'grabbing';
+                    recentSpeeds = [];
+                }
+                if (!hasMoved || dist < 0.5) return;
+                var p0 = screenToSphere(prevScreen.x, prevScreen.y);
+                var p1 = screenToSphere(curr.x, curr.y);
+                var deltaQ = new THREE.Quaternion().setFromUnitVectors(p0, p1);
+                rotationQuat.premultiply(deltaQ);
+                rotationQuat.normalize();
+                sphereGroup.quaternion.copy(rotationQuat);
+                var speed = quatAngle(deltaQ);
+                recentSpeeds.push(speed);
+                if (recentSpeeds.length > SPEED_SAMPLES) recentSpeeds.shift();
+                inertiaQ.copy(deltaQ);
+                prevScreen.copy(curr);
+            }
+
+            function onPointerUp(e) {
+                activePointerIds.delete(e.pointerId);
+                if (activePointerIds.size === 0) {
+                    // 点击启动应用
+                    if (isDragging && !hasMoved && hoveredSprite) {
+                        var app = getAppBySprite(hoveredSprite);
+                        if (app && nativeBridgeReady) {
+                            try { var result = NativeBridge.launchApp(app.packageName); if (result && !result.success)
+                                    console.warn('启动失败:', result.error); } catch (err) { console.error(
+                                    '启动应用异常:', err); }
+                        }
+                        // 点击脉冲反馈
+                        var hs = hoveredSprite;
+                        hs.scale.set(HOVER_SCALE * 1.15, HOVER_SCALE * 1.15, 1);
+                        setTimeout(function() { if (hs === hoveredSprite) hs.scale.set(HOVER_SCALE, HOVER_SCALE, 1); },
+                            150);
+                    }
+                    if (isDragging && hasMoved) startInertiaFromSpeeds();
+                    isDragging = false;
+                    hasMoved = false;
+                    document.body.style.cursor = hoveredSprite ? 'pointer' : 'grab';
+                }
+            }
+
+            function onPointerLeave(e) {
+                // 只清理悬停，不改变指针计数（pointerup 会单独处理）
+                if (activePointerIds.has(e.pointerId) && activePointerIds.size === 1 && isDragging && !hasMoved) {
+                    // 指针离开但还没真正拖拽，取消拖拽状态
+                    clearHover();
+                }
+                // 不删除指针！让 pointerup 来处理
+            }
+
+            function onPointerCancel(e) {
+                // 指针被取消（例如被系统手势接管），彻底清理
+                activePointerIds.delete(e.pointerId);
+                if (activePointerIds.size === 0) {
+                    isDragging = false;
+                    hasMoved = false;
+                    clearHover();
+                    document.body.style.cursor = 'grab';
+                }
+            }
+
+            // ========== 缩放 ==========
+            function onWheel(e) {
+                try { e.preventDefault(); } catch (ex) {}
+                zoomLevel += e.deltaY * 0.01;
+                zoomLevel = Math.max(MIN_ZOOM, zoomLevel);
+                applyZoom();
+            }
+
+            var pinchStartDist = 0;
+            var pinchStartZoom = zoomLevel;
+            var wasPinching = false;
+
+            function getTouchDist(touches) {
+                var dx = touches[0].clientX - touches[1].clientX;
+                var dy = touches[0].clientY - touches[1].clientY;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+
+            function onTouchStart(e) {
+                if (e.touches.length === 2) {
+                    pinchStartDist = getTouchDist(e.touches);
+                    pinchStartZoom = zoomLevel;
+                    isDragging = false;
+                    hasMoved = false;
+                    clearHover();
+                    wasPinching = true;
+                }
+            }
+
+            function onTouchMove(e) {
+                if (e.touches.length === 2) {
+                    try { e.preventDefault(); } catch (ex) {}
+                    var dist = getTouchDist(e.touches);
+                    if (pinchStartDist > 0) {
+                        var ratio = pinchStartDist / dist;
+                        zoomLevel = pinchStartZoom * ratio;
+                        zoomLevel = Math.max(MIN_ZOOM, zoomLevel);
+                        applyZoom();
+                    }
+                }
+            }
+
+            function onTouchEnd(e) {
+                if (e.touches.length < 2) {
+                    pinchStartDist = 0;
+                    if (wasPinching) setTimeout(function() { wasPinching = false; }, 400);
+                }
+            }
+
+            // ========== 事件绑定 ==========
+            canvas.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+            canvas.addEventListener('pointerleave', onPointerLeave);
+            window.addEventListener('pointercancel', onPointerCancel);
+            canvas.addEventListener('wheel', onWheel, { passive: false });
+
+            canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+            canvas.addEventListener('touchend', onTouchEnd);
+            canvas.addEventListener('touchcancel', function(e) {
+                onTouchEnd(e);
+                resetAllPointers();
+            });
+
+            // 双击重置
+            var lastTap = 0;
+            window.addEventListener('touchend', function(e) {
+                if (wasPinching || e.touches.length > 0) return;
+                var now = Date.now();
+                if (now - lastTap < 300 && !isDragging) {
+                    rotationQuat.identity();
+                    sphereGroup.quaternion.identity();
+                    inertiaQ.identity();
+                    inertiaStrength = 0;
+                    zoomLevel = defaultZoom;
+                    applyZoom();
+                    lastTap = 0;
+                    return;
+                }
+                lastTap = now;
+            });
+
+            // 响应式
+            window.addEventListener('resize', function() {
+                var w = window.innerWidth,
+                    h = window.innerHeight;
+                renderer.setSize(w, h);
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                defaultZoom = computeInitDistance();
+            });
+
+            // ========== 动画循环 ==========
+            function animate() {
+                requestAnimationFrame(animate);
+                if (inertiaStrength > INERTIA_MIN) {
+                    var decay = (isDragging && hasMoved) ? INERTIA_FAST_DECAY : INERTIA_DECAY;
+                    var factor = Math.min(inertiaStrength, 1.0);
+                    var applyQ = new THREE.Quaternion().slerpQuaternions(new THREE.Quaternion(), inertiaQ, factor);
+                    rotationQuat.premultiply(applyQ);
+                    rotationQuat.normalize();
+                    sphereGroup.quaternion.copy(rotationQuat);
+                    inertiaStrength *= decay;
+                    if (inertiaStrength < INERTIA_MIN) { inertiaStrength = 0;
+                        inertiaQ.identity(); }
+                }
+                renderer.render(scene, camera);
+            }
+
+            function init() {
+                zoomLevel = computeInitDistance();
+                defaultZoom = zoomLevel;
+                camera.position.set(0, 0, zoomLevel);
+                animate();
+                tryLoadApps();
+                console.log('🚀 3D 桌面已就绪');
+            }
+
+            init();
+        })();
+    </script>
 </body>
 </html>
