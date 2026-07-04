@@ -43,6 +43,8 @@ public class JsBridge {
 
             JSONArray appList = new JSONArray();
             for (ApplicationInfo app : apps) {
+                // Skip apps without launch intent
+                if (pm.getLaunchIntentForPackage(app.packageName) == null) continue;
                 JSONObject appObj = new JSONObject();
                 appObj.put("packageName", app.packageName);
                 appObj.put("appName", pm.getApplicationLabel(app).toString());
