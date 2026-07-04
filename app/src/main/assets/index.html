@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>DNG Launcher</title>
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; }
+        * { margin:0;padding:0;box-sizing:border-box; }
         html,body{width:100%;height:100%;overflow:hidden;background:#000;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;}
         body:active{cursor:grabbing;}
         canvas{display:block;width:100%;height:100%;}
@@ -27,7 +27,7 @@
 <div id="loadingHint">正在加载...</div>
 
 <script type="importmap">
-{"imports":{"three":"https://unpkg.com/three@0.185.1/build/three.module.js"}}
+{"imports":{"three":"./three.module.js"}}
 </script>
 
 <script type="module">
@@ -198,7 +198,6 @@ canvas.addEventListener('wheel',onWheel,{passive:false});
 canvas.addEventListener('touchstart',onTouchStart,{passive:false});
 canvas.addEventListener('touchmove',onTouchMove,{passive:false});
 
-// ── NativeBridge callbacks ──
 window._onAppsLoaded = function(result){
     if(!result.success) return;
     apps = result.apps.slice(0, MAX_ICONS);
@@ -284,7 +283,6 @@ function buildSphere(){
     }
 }
 
-// ── Search ──
 let searchTimer;
 document.getElementById('searchInput').addEventListener('input', function(){
     clearTimeout(searchTimer);
@@ -298,7 +296,6 @@ document.getElementById('searchInput').addEventListener('input', function(){
     }, 300);
 });
 
-// ── Animation loop ──
 function animate(){
     requestAnimationFrame(animate);
     if(inertiaStrength>INERTIA_MIN){
@@ -313,7 +310,6 @@ function animate(){
 }
 animate();
 
-// ── Init ──
 NativeBridge.requestInstalledApps();
 </script>
 </body>
