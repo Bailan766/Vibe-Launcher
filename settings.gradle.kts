@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "RootWebViewDemo"
+rootProject.name = "KotlinMinimal"
 include(":app")
