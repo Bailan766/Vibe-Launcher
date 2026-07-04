@@ -582,6 +582,8 @@ await renderer.init();
                 timeSprite = null;
             }
 
+            var pendingIconLoads = 0;
+
             function createSprites(appList, iconMap) {
                 clearAllSprites();
 
@@ -673,12 +675,12 @@ await renderer.init();
                 timeViewZoom = computeTimeViewZoom();
 
                 enterTimeView(true, function() {
-                    loadingEl.style.opacity = '0';
-                    setTimeout(async function() { loadingEl.textContent = ''; }, 500);
+                    checkAllIconsLoaded();
                 });
             }
 
             function loadRealIcon(sprite, iconUrl) {
+                pendingIconLoads++;
                 var img = new Image();
                 img.onload = function() {
                     try {
@@ -690,9 +692,18 @@ await renderer.init();
                         sprite.material.needsUpdate = true;
                         sprite.userData.hasRealIcon = true;
                     } catch (e) { console.warn('图标处理失败:', iconUrl, e); }
+                    pendingIconLoads--;
+                    checkAllIconsLoaded();
                 };
-                img.onerror = function() { console.warn('图标加载失败:', iconUrl); };
+                img.onerror = function() { console.warn('图标加载失败:', iconUrl); pendingIconLoads--; checkAllIconsLoaded(); };
                 img.src = iconUrl;
+            }
+
+            function checkAllIconsLoaded() {
+                if (pendingIconLoads <= 0) {
+                    loadingEl.style.opacity = '0';
+                    setTimeout(function() { loadingEl.textContent = ''; }, 500);
+                }
             }
 
             // ========== NativeBridge ==========
