@@ -8,6 +8,8 @@ import android.webkit.WebView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.concurrent.Executors;
+
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
@@ -25,9 +27,9 @@ public class MainActivity extends AppCompatActivity {
         settings.setDomStorageEnabled(true);
         webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
 
-        webView.setWebChromeClient(new WebChromeClient());
+        // API 35: use Executor constructor (no-arg deprecated)
+        webView.setWebChromeClient(new WebChromeClient(Executors.newSingleThreadExecutor()));
 
-        // P2 #12: WeakReference - JsBridge stores context/webview as WeakRef
         webView.addJavascriptInterface(new JsBridge(this, webView), "NativeBridge");
         webView.loadUrl("file:///android_asset/index.html");
     }
