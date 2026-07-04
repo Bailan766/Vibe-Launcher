@@ -69,9 +69,13 @@
     <div class="app-label" id="appLabel"></div>
     <div class="loading-indicator" id="loadingIndicator">正在加载应用…</div>
 
-    <script src="three.min.js">
-    </script>
-    <script>
+    <script type="importmap">
+{ "imports": { "three": "./three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+window.THREE = THREE;
+
         (function() {
             if (typeof THREE === 'undefined') {
                 document.getElementById('loadingIndicator').textContent = 'Three.js 未加载';
