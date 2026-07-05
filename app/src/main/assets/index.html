@@ -848,22 +848,26 @@ window._totalItems = totalItems;
                 });
                 // 平铺模式调整相机和背景
                 if (layoutMode === 'flat') {
+                    // 放大图标
+                    var flatScale = 2.0;
+                    for (var fs = 0; fs < sprites.length; fs++) {
+                        sprites[fs].scale.set(BASE_SCALE * flatScale, BASE_SCALE * flatScale, 1);
+                        sprites[fs].userData.baseScale = BASE_SCALE * flatScale;
+                    }
                     var flatPts = createFlatLayout(totalItems);
                     var maxY = 0;
                     for (var fi = 0; fi < flatPts.length; fi++) maxY = Math.max(maxY, Math.abs(flatPts[fi][1]));
-                    defaultZoom = Math.max((maxY * 2.2) / (2 * Math.tan(FOV_RAD / 2)), 8);
+                    defaultZoom = maxY / Math.tan(FOV_RAD / 2);
                     zoomLevel = defaultZoom;
                     applyZoom();
                     scene.background = new THREE.Color(0x1a1a2e);
-                        // 重置旋转，正面平铺
-                        rotationQuat.identity();
-                        sphereGroup.quaternion.identity();
-                        camera.position.set(0, 0, zoomLevel);
-                        camera.lookAt(0, 0, 0);
-                        
+                    rotationQuat.identity();
+                    sphereGroup.quaternion.identity();
+                    camera.position.set(0, 0, zoomLevel);
+                    camera.lookAt(0, 0, 0);
                 } else {
                     scene.background = new THREE.Color(0x000000);
-                }
+                }            }
             }
 
             function loadRealIcon(sprite, iconUrl) {
