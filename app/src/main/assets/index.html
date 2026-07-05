@@ -1803,13 +1803,13 @@ function updateBatteryDisplay() {
                 if (ctxInfo) ctxInfo.addEventListener('click', function() {
                     var menu = document.getElementById('context-menu');
                     var pkg = menu ? menu.getAttribute('data-pkg') : null;
-                    if (pkg && nativeBridgeReady) NativeBridge.openAppDetails(pkg);
+                    NativeBridge.log("ctx-info " + pkg); if (pkg && nativeBridgeReady) NativeBridge.log('details-result ' + NativeBridge.openAppDetails(pkg));
                     hideContextMenu();
                 });
                 if (ctxUninstall) ctxUninstall.addEventListener('click', function() {
                     var menu = document.getElementById('context-menu');
                     var pkg = menu ? menu.getAttribute('data-pkg') : null;
-                    if (pkg && nativeBridgeReady) NativeBridge.uninstallApp(pkg);
+                    NativeBridge.log("ctx-uninstall " + pkg); if (pkg && nativeBridgeReady) NativeBridge.log('uninst-result ' + NativeBridge.uninstallApp(pkg));
                     hideContextMenu();
                 });
                 requestAnimationFrame(animate);
