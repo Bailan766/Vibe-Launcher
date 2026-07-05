@@ -182,4 +182,9 @@ class JsBridge(context: Context, webView: WebView) {
     @JavascriptInterface
     fun log(msg: String) {
         Log.d("VibeLauncher", "[JS] $msg")
+        val ctx = contextRef.get() ?: return
+        val logFile = java.io.File(ctx.filesDir, "log.txt")
+        try {
+            logFile.appendText(java.time.Instant.now().toString() + " " + msg + "\n")
+        } catch (_: Exception) {}
     }
