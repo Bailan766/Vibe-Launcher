@@ -370,10 +370,10 @@ await renderer.init();
                 var t = Math.min(1, elapsed / rotationAnimData.duration);
                 var eased = easeOutCubic(t);
                 rotationQuat.copy(rotationAnimData.from).slerp(rotationAnimData.to, eased);
-                sphereGroup.quaternion.copy(rotationQuat);
+                if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
                 if (t >= 1) {
                     rotationQuat.copy(rotationAnimData.to);
-                    sphereGroup.quaternion.copy(rotationQuat);
+                    if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
                     var cb = rotationAnimData.callback;
                     rotationAnimData = null;
                     if (cb) cb();
@@ -390,7 +390,7 @@ await renderer.init();
                 };
                 if (callback && duration <= 0) {
                     rotationQuat.copy(targetQuat);
-                    sphereGroup.quaternion.copy(rotationQuat);
+                    if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
                     rotationAnimData = null;
                     callback();
                 }
@@ -718,7 +718,7 @@ window._totalItems = totalItems;
 
                 var N = totalItems.length;
                 var rawPoints;
-                if (layoutMode === 'flat') {
+                NativeBridge.log('CREATE-FLAT mode=' + layoutMode + ' total=' + totalItems.length); if (layoutMode === 'flat') {
                     rawPoints = createFlatLayout(totalItems);
                 } else {
                     rawPoints = sphereCoulomb(N, { radius: SPHERE_RADIUS, iter: 500 });
@@ -921,7 +921,7 @@ window._totalItems = totalItems;
                         if (!changed && sprites.length > 0) return; // 没变化，不重建
                         apps = data.apps;
                         loadingEl.textContent = '正在加载图标…';
-                        createSprites(apps, null);
+                        NativeBridge.log('createSprites-flat-switch layoutMode=' + layoutMode); createSprites(apps, null);
                         window._allPkgs = newPkgs;
                         if (nativeBridgeReady) NativeBridge.requestAppIcons(JSON.stringify(newPkgs), ICON_RES);
                     } else {
@@ -1244,7 +1244,7 @@ updateMouse(e.clientX, e.clientY);
                 var deltaQ = new THREE.Quaternion().setFromUnitVectors(p0, p1);
                 rotationQuat.premultiply(deltaQ);
                 rotationQuat.normalize();
-                sphereGroup.quaternion.copy(rotationQuat);
+                if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
                 var speed = quatAngle(deltaQ);
                 recentSpeeds.push(speed);
                 if (recentSpeeds.length > SPEED_SAMPLES) recentSpeeds.shift();
@@ -1577,7 +1577,7 @@ startRotationAnimation(targetQuat, 350, function() { console.log('ROT done'); ro
                     var applyQ = new THREE.Quaternion().slerpQuaternions(new THREE.Quaternion(), inertiaQ, factor);
                     rotationQuat.premultiply(applyQ);
                     rotationQuat.normalize();
-                    sphereGroup.quaternion.copy(rotationQuat);
+                    if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
                     if (!infiniteInertia) {
                         inertiaStrength *= decay;
                         if (inertiaStrength < INERTIA_MIN) {
@@ -1846,7 +1846,7 @@ function updateBatteryDisplay() {
                                 sprites[k].position.copy(rawPoints[k]);
                             }
                         }
-                        sphereGroup.quaternion.copy(rotationQuat);
+                        if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
                         defaultZoom = computeInitDistance();
                         timeViewZoom = computeTimeViewZoom();
                     }
