@@ -1006,7 +1006,7 @@ window._totalItems = totalItems;
                 var menu = document.getElementById('context-menu');
                 if (!menu) return;
                 var app = getAppBySprite(sprite);
-                if (app) menu.setAttribute('data-pkg', app.packageName);
+                NativeBridge.log('menu-open ' + (app?app.packageName:'?') ); if (app) menu.setAttribute('data-pkg', app.packageName);
                 // 定位菜单，保持在屏幕内
                 var mw = 160, mh = 100;
                 var left = Math.min(x, window.innerWidth - mw);
@@ -1018,7 +1018,8 @@ window._totalItems = totalItems;
             function hideContextMenu() {
                 var menu = document.getElementById('context-menu');
                 if (menu) menu.style.display = 'none';
-                
+                NativeBridge.log("menu-closed");
+                contextMenuOpen = false;
             }
 
             function clearHover() {
