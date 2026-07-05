@@ -1444,7 +1444,8 @@ startRotationAnimation(targetQuat, 350, function() { console.log('ROT done'); ro
 
                 page.style.visibility = 'visible';
                 html2canvas(page, { scale: 1, useCORS: true, backgroundColor: null }).then(function(domCanvas) {
-                    page.style.visibility = 'hidden';
+                    // 只有当不是原生覆盖模式时才隐藏页面
+                    if (page.style.zIndex !== '100') page.style.visibility = 'hidden';
                     var texCanvas = document.createElement('canvas');
                     texCanvas.width = s; texCanvas.height = s;
                     var ctx = texCanvas.getContext('2d');
@@ -1477,7 +1478,7 @@ startRotationAnimation(targetQuat, 350, function() { console.log('ROT done'); ro
                     timeSprite.material.map = tex;
                     timeSprite.material.needsUpdate = true;
                     if (oldMap && oldMap !== tex) oldMap.dispose();
-                }).catch(function(e) { console.warn('html2canvas error:', e); page.style.visibility = 'hidden'; });
+                }).catch(function(e) { console.warn('html2canvas error:', e); if (page.style.zIndex !== '100') page.style.visibility = 'hidden'; });
             }
             function startTimePageClock() {
                 var el = document.getElementById('time-page-clock');
