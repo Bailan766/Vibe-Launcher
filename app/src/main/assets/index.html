@@ -1096,9 +1096,9 @@ window._totalItems = totalItems;
                     clearLongPressTimer();
                     if (longPressSprite && !isInTimeView) {
                         var app = getAppBySprite(longPressSprite);
-                        NativeBridge.log('lp-check:' + , app?app.packageName:'null', 'setting:', app&&app.packageName==='__settings__', 'time:', app&&app.packageName==='__time__');
+                        NativeBridge.log('lp-check:' + (app?app.packageName:'null'));
                         if (app && app.packageName !== '__settings__' && app.packageName !== '__time__') {
-                            NativeBridge.log('lp-start:' +  app.packageName);
+                            NativeBridge.log('lp-start: ' + app.packageName);
                             longPressTimer = setTimeout(function() {
                                 NativeBridge.log('lp-fired');
                                 showContextMenu(longPressSprite, e.clientX, e.clientY);
