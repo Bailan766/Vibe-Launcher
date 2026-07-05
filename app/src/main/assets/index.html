@@ -1568,6 +1568,16 @@ startRotationAnimation(targetQuat, 350, function() { console.log('ROT done'); ro
                     };
                     localStorage.setItem('vibe-settings', JSON.stringify(settings));
                     ICON_RES = Math.max(64, parseInt(settings.iconRes) || 512);
+                    // 清除旧图标缓存，强制重新加载
+                    if (nativeBridgeReady) NativeBridge.clearIconCache();
+                    // 标记所有图标需要重新加载
+                    sprites.forEach(function(spr) {
+                        spr.userData.hasRealIcon = false;
+                    });
+                    // 立即触发重新加载图标
+                    if (window._allPkgs && nativeBridgeReady) {
+                        NativeBridge.requestAppIcons(JSON.stringify(window._allPkgs), ICON_RES);
+                    }
                     // 重建所有图标纹理
                     console.log('Rebuilding textures at ICON_RES:', ICON_RES);
                     sprites.forEach(function(spr) {
