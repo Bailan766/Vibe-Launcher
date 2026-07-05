@@ -938,7 +938,7 @@ window._totalItems = totalItems;
             var mouse = new THREE.Vector2();
             var hoveredSprite = null;
             var longPressTimer = null;
-            var longPressSprite = null;
+            var 
             var LONG_PRESS_MS = 600;
 
             function screenToSphere(sx, sy) {
@@ -999,12 +999,13 @@ window._totalItems = totalItems;
 
             function clearLongPressTimer() {
                 if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-                longPressSprite = null;
+                
             }
             function showContextMenu(sprite, x, y) {
-                longPressSprite = sprite;
                 var menu = document.getElementById('context-menu');
                 if (!menu) return;
+                var app = getAppBySprite(sprite);
+                if (app) menu.setAttribute('data-pkg', app.packageName);
                 // 定位菜单，保持在屏幕内
                 var mw = 160, mh = 100;
                 var left = Math.min(x, window.innerWidth - mw);
@@ -1016,7 +1017,7 @@ window._totalItems = totalItems;
             function hideContextMenu() {
                 var menu = document.getElementById('context-menu');
                 if (menu) menu.style.display = 'none';
-                longPressSprite = null;
+                
             }
 
             function clearHover() {
@@ -1088,22 +1089,24 @@ window._totalItems = totalItems;
                     hasMoved = false;
                     prevScreen.set(e.clientX, e.clientY);
                     document.body.style.cursor = 'grabbing';
-                    updateMouse(e.clientX, e.clientY);
+updateMouse(e.clientX, e.clientY);
                     checkHover(e);
-                    // 长按检测
-                    longPressSprite = hoveredSprite;
-                    var _lpStartX = e.clientX, _lpStartY = e.clientY;
+                    // 长按检测：直接定时600ms，到时raycaster检测
+                    var _lpX2 = e.clientX, _lpY2 = e.clientY;
                     clearLongPressTimer();
-                    if (longPressSprite && !isInTimeView) {
-                        var app = getAppBySprite(longPressSprite);
-                        NativeBridge.log('lp-check:' + (app?app.packageName:'null'));
-                        if (app && app.packageName !== '__settings__' && app.packageName !== '__time__') {
-                            NativeBridge.log('lp-start: ' + app.packageName);
-                            longPressTimer = setTimeout(function() {
-                                NativeBridge.log('lp-fired');
-                                showContextMenu(longPressSprite, e.clientX, e.clientY);
-                            }, LONG_PRESS_MS);
-                        }
+                    if (!isInTimeView) {
+                        longPressTimer = setTimeout(function() {
+                            updateMouse(_lpX2, _lpY2);
+                            raycaster.setFromCamera(mouse, camera);
+                            var hits = raycaster.intersectObjects(sprites);
+                            var spr = hits.length > 0 ? hits[0].object : null;
+                            if (spr) {
+                                var app = getAppBySprite(spr);
+                                if (app && app.packageName !== '__settings__' && app.packageName !== '__time__') {
+                                    showContextMenu(spr, _lpX2, _lpY2);
+                                }
+                            }
+                        }, LONG_PRESS_MS);
                     }
                 } else {
                     isDragging = false;
@@ -1158,6 +1161,7 @@ window._totalItems = totalItems;
                 }
 
                 if (!isInTimeView && (!hasMoved || activePointerIds.size !== 1)) checkHover(e);
+                // 持续追踪长按目标                }
                 if (!isDragging || activePointerIds.size !== 1 || isInTimeView) {
                     return;
                 }
@@ -1769,13 +1773,15 @@ function updateBatteryDisplay() {
                 var ctxInfo = document.getElementById('ctx-app-info');
                 var ctxUninstall = document.getElementById('ctx-uninstall');
                 if (ctxInfo) ctxInfo.addEventListener('click', function() {
-                    var app = longPressSprite ? getAppBySprite(longPressSprite) : null;
-                    if (app && nativeBridgeReady) NativeBridge.openAppDetails(app.packageName);
+                    var menu = document.getElementById('context-menu');
+                    var pkg = menu ? menu.getAttribute('data-pkg') : null;
+                    if (pkg && nativeBridgeReady) NativeBridge.openAppDetails(pkg);
                     hideContextMenu();
                 });
                 if (ctxUninstall) ctxUninstall.addEventListener('click', function() {
-                    var app = longPressSprite ? getAppBySprite(longPressSprite) : null;
-                    if (app && nativeBridgeReady) NativeBridge.uninstallApp(app.packageName);
+                    var menu = document.getElementById('context-menu');
+                    var pkg = menu ? menu.getAttribute('data-pkg') : null;
+                    if (pkg && nativeBridgeReady) NativeBridge.uninstallApp(pkg);
                     hideContextMenu();
                 });
                 requestAnimationFrame(animate);
