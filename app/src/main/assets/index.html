@@ -1552,20 +1552,20 @@ startRotationAnimation(targetQuat, 350, function() { console.log('ROT done'); ro
                     if (oldMap && oldMap !== tex) oldMap.dispose();
                 }).catch(function(e) { console.warn('html2canvas error:', e); if (page.style.zIndex !== '100') page.style.visibility = 'hidden'; });
             }
+function updateBatteryDisplay() {
+                try {
+                    var batteryEl = document.getElementById('time-page-battery');
+                    if (!batteryEl) return;
+                    var bl = JSON.parse(NativeBridge.getBatteryLevel());
+                    var ch = JSON.parse(NativeBridge.isCharging());
+                    if (bl.success) {
+                        batteryEl.textContent = (ch.charging ? '⚡' : '🔋') + ' ' + bl.level + '%';
+                    }
+                } catch(e) {}
+            }
             function startTimePageClock() {
                 var el = document.getElementById('time-page-clock');
                 if (!el) return;
-                function updateBatteryDisplay() {
-                    try {
-                        var batteryEl = document.getElementById('time-page-battery');
-                        if (!batteryEl) return;
-                        var bl = JSON.parse(NativeBridge.getBatteryLevel());
-                        var ch = JSON.parse(NativeBridge.isCharging());
-                        if (bl.success) {
-                            batteryEl.textContent = (ch.charging ? '⚡' : '🔋') + ' ' + bl.level + '%';
-                        }
-                    } catch(e) {}
-                }
                 function tick() {
                     var now = new Date();
                     el.textContent = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
