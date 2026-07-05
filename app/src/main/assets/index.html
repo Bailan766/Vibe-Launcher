@@ -1079,6 +1079,9 @@ window._totalItems = totalItems;
                     }
                     if (bottomSwipeData.confirmed || deltaY > 8) {
                         bottomSwipeData.confirmed = true;
+                        // 有上滑意图立即隐藏原生时间覆盖层
+                        var tp = document.getElementById('time-page');
+                        if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; }
                         var screenH = window.innerHeight;
                         var maxDelta = screenH * 0.7;
                         var clampedDelta = Math.max(0, Math.min(maxDelta, deltaY));
@@ -1153,6 +1156,9 @@ window._totalItems = totalItems;
                             startZoomAnimation(timeViewZoom, 350, function() {
                                 zoomLevel = timeViewZoom;
                                 applyZoom();
+                                // 恢复原生时间覆盖层
+                                var tp = document.getElementById('time-page');
+                                if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; }
                             });
                         }
                     } else {
@@ -1160,7 +1166,12 @@ window._totalItems = totalItems;
                             startZoomAnimation(timeViewZoom, 300, function() {
                                 zoomLevel = timeViewZoom;
                                 applyZoom();
+                                var tp = document.getElementById('time-page');
+                                if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; }
                             });
+                        } else {
+                            var tp = document.getElementById('time-page');
+                            if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; }
                         }
                     }
                     if (activePointerIds.size === 0) {
