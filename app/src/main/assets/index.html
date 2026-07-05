@@ -938,6 +938,7 @@ window._totalItems = totalItems;
             var mouse = new THREE.Vector2();
             var hoveredSprite = null;
             var longPressTimer = null;
+            var longPressFired = false;
             var LONG_PRESS_MS = 600;
 
             function screenToSphere(sx, sy) {
@@ -1093,6 +1094,7 @@ updateMouse(e.clientX, e.clientY);
                     // 长按检测：直接定时600ms，到时raycaster检测
                     var _lpX2 = e.clientX, _lpY2 = e.clientY;
                     clearLongPressTimer();
+                    longPressFired = false;
                     if (!isInTimeView) {
                         longPressTimer = setTimeout(function() {
                             updateMouse(_lpX2, _lpY2);
@@ -1102,6 +1104,7 @@ updateMouse(e.clientX, e.clientY);
                             if (spr) {
                                 var app = getAppBySprite(spr);
                                 if (app && app.packageName !== '__settings__' && app.packageName !== '__time__') {
+                                    longPressFired = true;
                                     showContextMenu(spr, _lpX2, _lpY2);
                                 }
                             }
@@ -1254,7 +1257,7 @@ updateMouse(e.clientX, e.clientY);
                     hideContextMenu();
                 }
                 if (activePointerIds.size === 0) {
-                    if (isDragging && !hasMoved && hoveredSprite && !isInTimeView) {
+                    if (isDragging && !hasMoved && hoveredSprite && !isInTimeView && !longPressFired) {
                         try { NativeBridge.log('click-detect:' + (getAppBySprite(hoveredSprite)||{}).packageName); } catch(e) {}
                         var a=getAppBySprite(hoveredSprite); try{NativeBridge.log("CLICK:"+(a?a.packageName:"null"));}catch(e){}
                         var app = getAppBySprite(hoveredSprite);
