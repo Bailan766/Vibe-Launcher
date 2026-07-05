@@ -265,7 +265,7 @@ await renderer.init();
 
             // ========== 常量 ==========
             var SPHERE_RADIUS = 2.5;
-            var _saved = {}; try { _saved = JSON.parse(localStorage.getItem('vibe-settings') || '{}'); } catch(e) {} var layoutMode = (_saved.layoutMode || 'sphere');
+            var layoutMode = 'sphere'; // sphere | flat
             var SPHERE_DIAMETER = SPHERE_RADIUS * 2;
             var BASE_SCALE = 0.52;
             var ICON_RES = 512;
@@ -370,10 +370,10 @@ await renderer.init();
                 var t = Math.min(1, elapsed / rotationAnimData.duration);
                 var eased = easeOutCubic(t);
                 rotationQuat.copy(rotationAnimData.from).slerp(rotationAnimData.to, eased);
-                if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
+                sphereGroup.quaternion.copy(rotationQuat);
                 if (t >= 1) {
                     rotationQuat.copy(rotationAnimData.to);
-                    if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
+                    sphereGroup.quaternion.copy(rotationQuat);
                     var cb = rotationAnimData.callback;
                     rotationAnimData = null;
                     if (cb) cb();
@@ -390,7 +390,7 @@ await renderer.init();
                 };
                 if (callback && duration <= 0) {
                     rotationQuat.copy(targetQuat);
-                    if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
+                    sphereGroup.quaternion.copy(rotationQuat);
                     rotationAnimData = null;
                     callback();
                 }
@@ -679,7 +679,7 @@ await renderer.init();
                 if (N === 0) return [];
                 var cols = Math.ceil(Math.sqrt(N * (window.innerWidth / window.innerHeight)));
                 var rows = Math.ceil(N / cols);
-                var spacing = SPHERE_RADIUS * 0.65; // 固定间距，每个图标足够分开
+                var spacing = SPHERE_RADIUS * 1.5 / Math.max(cols, rows);
                 var points = [];
                 var cx = (cols - 1) * spacing * 0.5;
                 var cy = (rows - 1) * spacing * 0.5;
@@ -720,28 +720,22 @@ window._totalItems = totalItems;
                 var rawPoints;
                 if (layoutMode === 'flat') {
                     rawPoints = createFlatLayout(totalItems);
-                    NativeBridge.log('FLAT-pos[0]=' + JSON.stringify(rawPoints[0]) + ' N=' + rawPoints.length);
                 } else {
                     rawPoints = sphereCoulomb(N, { radius: SPHERE_RADIUS, iter: 500 });
                 }
 
-                // 时间对齐旋转（仅球体模式）
-                var rotatedPoints;
-                if (layoutMode === 'sphere') {
                 var timeItemIndex = totalItems.findIndex(function(item) { return item.type === 'time'; });
                 var timeRaw = rawPoints[timeItemIndex];
                 var timePos = new THREE.Vector3(timeRaw[0], timeRaw[1], timeRaw[2]);
                 var targetDir = timePos.clone().normalize();
                 var cameraDir = new THREE.Vector3(0, 0, 1);
                 var alignQuat = new THREE.Quaternion().setFromUnitVectors(targetDir, cameraDir);
-                rotatedPoints = rawPoints.map(function(p) {
+
+                var rotatedPoints = rawPoints.map(function(p) {
                     var v = new THREE.Vector3(p[0], p[1], p[2]);
                     v.applyQuaternion(alignQuat);
                     return v;
                 });
-                } else {
-                    rotatedPoints = rawPoints;
-                }
 
                 for (var j = 0; j < N; j++) {
                     var item = totalItems[j];
@@ -818,8 +812,7 @@ window._totalItems = totalItems;
                     if (saved.sphereSize && parseFloat(saved.sphereSize) > 0) {
                         SPHERE_RADIUS = parseFloat(saved.sphereSize);
                         // sphereGroup now uses Coulomb points directly, no need for scale
-                        // 重新分布（仅球体模式）
-                        if (layoutMode === 'sphere') {
+                        // 重新分布
                         var rawPts = sphereCoulomb(totalItems.length, { radius: SPHERE_RADIUS, iter: 500 });
                         var tIdx = totalItems.findIndex(function(it) { return it.type === 'time'; });
                         if (tIdx >= 0) {
@@ -836,7 +829,6 @@ window._totalItems = totalItems;
                         }
                         defaultZoom = computeInitDistance();
                         timeViewZoom = computeTimeViewZoom();
-                        } // end redistribution if
                     }
                 } catch(e) {}
 
@@ -846,29 +838,6 @@ window._totalItems = totalItems;
                     enterAnimationComplete = true;
                     checkAllIconsLoaded();
                 });
-                // 平铺模式调整相机和背景
-                if (layoutMode === 'flat') {
-                    // 放大图标
-                    var flatScale = 2.0;
-                    for (var fs = 0; fs < sprites.length; fs++) {
-                        sprites[fs].scale.set(BASE_SCALE * flatScale, BASE_SCALE * flatScale, 1);
-                        sprites[fs].userData.baseScale = BASE_SCALE * flatScale;
-                    }
-                    // 使用已计算的布局点（避免SPHERE_RADIUS变化导致不一致）
-                    var maxAbsY = 0;
-                    for (var fi = 0; fi < rawPoints.length; fi++) maxAbsY = Math.max(maxAbsY, Math.abs(rawPoints[fi][1]));
-                    defaultZoom = maxAbsY / Math.tan(FOV_RAD / 2);
-                    NativeBridge.log('FLAT-cam maxY=' + maxAbsY + ' zoom=' + defaultZoom);
-                    zoomLevel = defaultZoom;
-                    applyZoom();
-                    scene.background = new THREE.Color(0x1a1a2e);
-                    rotationQuat.identity();
-                    sphereGroup.quaternion.identity();
-                    camera.position.set(0, 0, zoomLevel);
-                    camera.lookAt(0, 0, 0);
-                } else {
-                    scene.background = new THREE.Color(0x000000);
-                }
             }
 
             function loadRealIcon(sprite, iconUrl) {
@@ -952,7 +921,7 @@ window._totalItems = totalItems;
                         if (!changed && sprites.length > 0) return; // 没变化，不重建
                         apps = data.apps;
                         loadingEl.textContent = '正在加载图标…';
-                        NativeBridge.log('createSprites-flat-switch layoutMode=' + layoutMode); createSprites(apps, null);
+                        createSprites(apps, null);
                         window._allPkgs = newPkgs;
                         if (nativeBridgeReady) NativeBridge.requestAppIcons(JSON.stringify(newPkgs), ICON_RES);
                     } else {
@@ -1275,7 +1244,7 @@ updateMouse(e.clientX, e.clientY);
                 var deltaQ = new THREE.Quaternion().setFromUnitVectors(p0, p1);
                 rotationQuat.premultiply(deltaQ);
                 rotationQuat.normalize();
-                if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
+                sphereGroup.quaternion.copy(rotationQuat);
                 var speed = quatAngle(deltaQ);
                 recentSpeeds.push(speed);
                 if (recentSpeeds.length > SPEED_SAMPLES) recentSpeeds.shift();
@@ -1608,7 +1577,7 @@ startRotationAnimation(targetQuat, 350, function() { console.log('ROT done'); ro
                     var applyQ = new THREE.Quaternion().slerpQuaternions(new THREE.Quaternion(), inertiaQ, factor);
                     rotationQuat.premultiply(applyQ);
                     rotationQuat.normalize();
-                    if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
+                    sphereGroup.quaternion.copy(rotationQuat);
                     if (!infiniteInertia) {
                         inertiaStrength *= decay;
                         if (inertiaStrength < INERTIA_MIN) {
@@ -1731,18 +1700,6 @@ function updateBatteryDisplay() {
                         b.classList.remove('active');
                     }
                 });
-                // 布局选项立即生效
-                if (group === 'settings-layout' && val !== layoutMode) {
-                    layoutMode = val;
-                    NativeBridge.log('setRadio-layout switch to ' + val);
-                    try {
-                        createSprites(apps, null);
-                        if (nativeBridgeReady && window._allPkgs) NativeBridge.requestAppIcons(JSON.stringify(window._allPkgs), ICON_RES);
-                    } catch(e) { NativeBridge.log('layout-error: ' + e.message); }
-                    var s = {}; try { s = JSON.parse(localStorage.getItem('vibe-settings')||'{}'); } catch(e) {}
-                    s.layoutMode = val;
-                    localStorage.setItem('vibe-settings', JSON.stringify(s));
-                }
             }
 
             window.highlightRadio = function(group, val) {
@@ -1871,8 +1828,12 @@ function updateBatteryDisplay() {
                     if (sphereGroup && inputR > 0) {
                         SPHERE_RADIUS = parseFloat(settings.sphereSize);
                     var newLayout = settings.layoutMode || 'sphere';
-                    // 重新分布所有sprite位置
-                    if (layoutMode === 'sphere') {
+                    if (newLayout !== layoutMode) {
+                        layoutMode = newLayout;
+                        createSprites(apps, null);
+                        if (nativeBridgeReady && window._allPkgs) NativeBridge.requestAppIcons(JSON.stringify(window._allPkgs), ICON_RES);
+                    } else {
+                        // 重新分布所有sprite位置
                         var rawPoints = sphereCoulomb(window._totalItems.length, { radius: SPHERE_RADIUS, iter: 500 });
                         var timeIdx = window._totalItems.findIndex(function(it) { return it.type === 'time'; });
                         if (timeIdx >= 0) {
@@ -1889,7 +1850,7 @@ function updateBatteryDisplay() {
                                 sprites[k].position.copy(rawPoints[k]);
                             }
                         }
-                        if (layoutMode === 'sphere') sphereGroup.quaternion.copy(rotationQuat);
+                        sphereGroup.quaternion.copy(rotationQuat);
                         defaultZoom = computeInitDistance();
                         timeViewZoom = computeTimeViewZoom();
                     }
