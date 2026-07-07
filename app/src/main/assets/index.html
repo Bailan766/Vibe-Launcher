@@ -1123,7 +1123,7 @@ window._totalItems = totalItems;
 
 
             window._onBackPressed = function() {
-                // 优先级：菜单 > 设置 > 动画 > 时间视图
+                // 优先级：菜单 > 设置 > 动画 > 时间视图 > 重置摄像头
                 if (contextMenuOpen) {
                     hideContextMenu();
                     return;
@@ -1144,7 +1144,15 @@ window._totalItems = totalItems;
                 }
                 if (isInTimeView) {
                     exitTimeView(true);
+                    return;
                 }
+                // 兜底：重置摄像头拉近（类似双击）
+                rotationQuat.identity();
+                sphereGroup.quaternion.identity();
+                inertiaQ.identity();
+                inertiaStrength = 0;
+                zoomLevel = defaultZoom;
+                applyZoom();
             };
 
             window._onAppsLoaded = function(json) {
