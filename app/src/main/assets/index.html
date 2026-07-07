@@ -61,9 +61,13 @@ canvas{display:block}
 </div>
 <div id="appLabel"></div>
 
-<script src="https://unpkg.com/three@0.185.1/build/three.min.js"></script>
 <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<script>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.185.1/build/three.module.js", "three/webgpu": "https://unpkg.com/three@0.185.1/build/three.webgpu.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three/webgpu';
+window.THREE = THREE;
 (function() {
 "use strict";
 console.log("IIFE starting, THREE:", typeof THREE);
