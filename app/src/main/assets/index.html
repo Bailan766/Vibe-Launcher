@@ -1146,11 +1146,13 @@ window._totalItems = totalItems;
                     exitTimeView(true);
                     return;
                 }
-                // 兜底：重置摄像头拉近（保留当前朝向）
+                // 兜底：重置摄像头拉近（保留当前朝向，500ms动画）
                 inertiaQ.identity();
                 inertiaStrength = 0;
-                zoomLevel = defaultZoom;
-                applyZoom();
+                startZoomAnimation(defaultZoom, 500, function() {
+                    zoomLevel = defaultZoom;
+                    applyZoom();
+                });
             };
 
             window._onAppsLoaded = function(json) {
