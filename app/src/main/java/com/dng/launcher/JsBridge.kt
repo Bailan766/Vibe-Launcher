@@ -181,6 +181,18 @@ class JsBridge(context: Context, webView: WebView) {
     data class IconResult(val packageName: String, val iconUrl: String)
 
     @JavascriptInterface
+    fun goBack(): String {
+        return try {
+            webViewRef.get()?.post {
+                webViewRef.get()?.evaluateJavascript("window._onBackPressed();", null)
+            }
+            """{"success":true}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    @JavascriptInterface
     fun clearIconCache(): String {
         return try {
             iconCacheDir.listFiles()?.forEach { it.delete() }
