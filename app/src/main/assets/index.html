@@ -1162,7 +1162,7 @@ window._totalItems = totalItems;
                     hideContextMenu();
                     return;
                 }
-                var overlay = document.getElementById("settings-overlay");
+                const overlay = document.getElementById("settings-overlay");
                 if (overlay && overlay.style.display === "flex") {
                     overlay.style.display = "none";
                     canvas.style.pointerEvents = "auto";
