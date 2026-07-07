@@ -1018,9 +1018,9 @@ const initSettings = () => {
 const updateBattery = () => {
     if (!$.bridgeReady) return;
     try {
-        const level = NativeBridge.getBatteryLevel();
-        const charging = NativeBridge.isCharging();
-        $.timeBattery.textContent = (charging ? '⚡ ' : '🔋 ') + level + '%';
+        const b = JSON.parse(NativeBridge.getBatteryLevel());
+        const c = JSON.parse(NativeBridge.isCharging());
+        $.timeBattery.textContent = (c.charging ? '⚡ ' : '🔋 ') + b.level + '%';
     } catch (e) {}
 };
 
