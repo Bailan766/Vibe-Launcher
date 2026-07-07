@@ -242,7 +242,7 @@ const sphereCoulomb = (N, opts = {}) => {
 // ================================================================
 // SCENE SETUP
 // ================================================================
-const initScene = () => {
+const initScene = async () => {
     $.scene = new THREE.Scene();
     $.scene.background = new THREE.Color(0x111118);
 
@@ -269,6 +269,7 @@ const initScene = () => {
     $.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     document.body.appendChild($.renderer.domElement);
     $.canvas = $.renderer.domElement;
+    await $.renderer.init();
     console.log('Renderer:', $.rendererType);
 
     // Lighting
@@ -1035,8 +1036,8 @@ document.addEventListener('visibilitychange', () => {
 // ================================================================
 // INIT
 // ================================================================
-const init = () => {
-    initScene();
+const init = async () => {
+    await initScene();
     initBridge();
     initSettings();
 
