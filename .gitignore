@@ -7,3 +7,4 @@ local.properties
 /app/build/
 *.p12
 *.pem
+app/src/main/assets/index.html
