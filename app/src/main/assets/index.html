@@ -646,6 +646,17 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
                 const wait = (60 - sec) * 1000 - ms + 50;
                 console.log('SCHEDULE: next update in ' + (wait/1000).toFixed(1) + 's (now ' + sec + 's ' + ms + 'ms)');
                 timeTextureUpdateInterval = setTimeout(() => {
+                    // 先刷新DOM，确保截图是最新分钟
+                    const el = document.getElementById('time-page-clock');
+                    if (el) {
+                        const n = new Date();
+                        el.textContent = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
+                        const de = document.getElementById('time-page-date');
+                        if (de) {
+                            const wd = ['周日','周一','周二','周三','周四','周五','周六'];
+                            de.textContent = (n.getMonth()+1) + '月' + n.getDate() + '日 ' + wd[n.getDay()];
+                        }
+                    }
                     renderTimePageToTexture();
                     try { updateBatteryFromNative(); } catch(e) {}
                     scheduleMinuteUpdate();
