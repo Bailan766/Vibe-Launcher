@@ -372,7 +372,7 @@ let renderer = null, rendererType = 'unknown';
             const FOV_RAD = THREE.MathUtils.degToRad(50);
             const MIN_ZOOM = 0.1;
             
-            const ROTATION_ANIM_DURATION = 250; // 旋转动画时长
+            const ANIM_DURATION = 250; // 全局动画时长 (ms)
             const exitThresholdRatio = 0.35;
             let cancelableAction = null;
             let bottomSwipeData = null, topSwipeData = null;
@@ -444,12 +444,12 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
                     rotDone: false, zoomDone: false, cancelled: false
                 };
                 inertiaQ.identity(); inertiaStrength = 0; infiniteInertia = false;
-                startRotationAnimation(rotTarget, ROTATION_ANIM_DURATION, function() {
+                startRotationAnimation(rotTarget, ANIM_DURATION, function() {
                     if (cancelableAction && !cancelableAction.cancelled) {
                         cancelableAction.rotDone = true; tryCommitCancelable();
                     }
                 });
-                startZoomAnimation(zoomTarget, ROTATION_ANIM_DURATION, function() {
+                startZoomAnimation(zoomTarget, ANIM_DURATION, function() {
                     zoomLevel = zoomTarget; applyZoom();
                     if (cancelableAction && !cancelableAction.cancelled) {
                         cancelableAction.zoomDone = true; tryCommitCancelable();
@@ -472,7 +472,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
                 cancelableAction.cancelled = true;
                 try { NativeBridge.log('cancel:' + reason); } catch(e) {}
                 cancelZoomAnimation();
-                startZoomAnimation(defaultZoom, 250, function() {
+                startZoomAnimation(defaultZoom, ANIM_DURATION, function() {
                     zoomLevel = defaultZoom; applyZoom();
                 });
                 cancelableAction = null;
@@ -537,7 +537,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
                     from: rotationQuat.clone(),
                     to: targetQuat.clone(),
                     startTime: performance.now(),
-                    duration: duration || ROTATION_ANIM_DURATION,
+                    duration: duration || ANIM_DURATION,
                     callback: callback || null
                 };
                 if (callback && duration <= 0) {
@@ -637,7 +637,7 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
                 const targetZoom = computeTimeViewZoom();
                 timeViewZoom = targetZoom;
                 if (animate) {
-                    startZoomAnimation(targetZoom, 250, function() {
+                    startZoomAnimation(targetZoom, ANIM_DURATION, function() {
                         zoomLevel = targetZoom;
                         applyZoom();
                         if (onComplete) onComplete();
@@ -671,7 +671,7 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
                 }
                 const targetZoom = defaultZoom;
                 if (animate) {
-                    startZoomAnimation(targetZoom, 250, function() {
+                    startZoomAnimation(targetZoom, ANIM_DURATION, function() {
                         zoomLevel = targetZoom;
                         applyZoom();
                         if (callback) callback();
@@ -716,12 +716,12 @@ let zoomComplete = false, rotationComplete = false;
                     }
                 }
 
-                startRotationAnimation(targetQuat, ROTATION_ANIM_DURATION, function() {
+                startRotationAnimation(targetQuat, ANIM_DURATION, function() {
                     rotationComplete = true;
                     checkBothComplete();
                 });
 
-                startZoomAnimation(targetZoom, ROTATION_ANIM_DURATION, function() {
+                startZoomAnimation(targetZoom, ANIM_DURATION, function() {
                     zoomLevel = targetZoom;
                     applyZoom();
                     zoomComplete = true;
@@ -1132,7 +1132,7 @@ window._totalItems = totalItems;
                 if (overlay && overlay.style.display === "flex") {
                     overlay.style.display = "none";
                     canvas.style.pointerEvents = "auto";
-                    startZoomAnimation(defaultZoom, 250, function() {
+                    startZoomAnimation(defaultZoom, ANIM_DURATION, function() {
                         zoomLevel = defaultZoom;
                         applyZoom();
                     });
@@ -1146,10 +1146,10 @@ window._totalItems = totalItems;
                     exitTimeView(true);
                     return;
                 }
-                // 兜底：重置摄像头拉近（保留当前朝向，500ms动画）
+                // 兜底：重置摄像头拉近（保留当前朝向）
                 inertiaQ.identity();
                 inertiaStrength = 0;
-                startZoomAnimation(defaultZoom, 250, function() {
+                startZoomAnimation(defaultZoom, ANIM_DURATION, function() {
                     zoomLevel = defaultZoom;
                     applyZoom();
                 });
@@ -1514,7 +1514,7 @@ updateMouse(e.clientX, e.clientY);
                     if (sd.confirmed && zoomLevel <= sd.startTimeViewZoom + (defaultZoom - sd.startTimeViewZoom) * 0.5) {
                         returnToTimeView();
                     } else {
-                        startZoomAnimation(defaultZoom, 250, function() { zoomLevel = defaultZoom; applyZoom(); });
+                        startZoomAnimation(defaultZoom, ANIM_DURATION, function() { zoomLevel = defaultZoom; applyZoom(); });
                     }
                     return;
                 }
@@ -1539,7 +1539,7 @@ updateMouse(e.clientX, e.clientY);
                                 inertiaQ.copy(smallQ);
                             });
                         } else {
-                            startZoomAnimation(timeViewZoom, 250, function() {
+                            startZoomAnimation(timeViewZoom, ANIM_DURATION, function() {
                                 zoomLevel = timeViewZoom;
                                 applyZoom();
                                 // 恢复原生时间覆盖层
@@ -1549,7 +1549,7 @@ updateMouse(e.clientX, e.clientY);
                         }
                     } else {
                         if (Math.abs(zoomLevel - timeViewZoom) > 0.02) {
-                            startZoomAnimation(timeViewZoom, 250, function() {
+                            startZoomAnimation(timeViewZoom, ANIM_DURATION, function() {
                                 zoomLevel = timeViewZoom;
                                 applyZoom();
                                 const tp = document.getElementById('time-page');
@@ -1636,10 +1636,10 @@ updateMouse(e.clientX, e.clientY);
                         if (currentZoom >= thresholdZoom) {
                             exitTimeView(true);
                         } else {
-                            startZoomAnimation(timeViewZoom, 250);
+                            startZoomAnimation(timeViewZoom, ANIM_DURATION);
                         }
                     } else {
-                        startZoomAnimation(timeViewZoom, 250);
+                        startZoomAnimation(timeViewZoom, ANIM_DURATION);
                     }
                     document.body.style.cursor = 'default';
                 }
@@ -1658,10 +1658,10 @@ updateMouse(e.clientX, e.clientY);
                         if (currentZoom >= thresholdZoom) {
                             exitTimeView(true);
                         } else {
-                            startZoomAnimation(timeViewZoom, 250);
+                            startZoomAnimation(timeViewZoom, ANIM_DURATION);
                         }
                     } else {
-                        startZoomAnimation(timeViewZoom, 250);
+                        startZoomAnimation(timeViewZoom, ANIM_DURATION);
                     }
                 }
                 if (activePointerIds.size === 0) {
@@ -1729,7 +1729,7 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
                         if (zoomLevel >= thresholdZoom) {
                             exitTimeView(true);
                         } else {
-                            startZoomAnimation(timeViewZoom, 250);
+                            startZoomAnimation(timeViewZoom, ANIM_DURATION);
                         }
                     }
                     pinchStartDist = 0;
@@ -1886,7 +1886,7 @@ const updateBatteryDisplay = () => {
                     const tp = document.getElementById('time-page');
                     if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; tp.style.pointerEvents = 'none'; }
                 } else if (!document.hidden && zoomLevel < defaultZoom - 0.1 && !isInTimeView && zoomTarget === null) {
-                    startZoomAnimation(defaultZoom, 250, function() {
+                    startZoomAnimation(defaultZoom, ANIM_DURATION, function() {
                         zoomLevel = defaultZoom;
                         applyZoom();
                     });
@@ -1959,7 +1959,7 @@ const updateBatteryDisplay = () => {
                 backBtn.addEventListener('click', function() {
                     overlay.style.display = 'none';
                     canvas.style.pointerEvents = 'auto';
-                    startZoomAnimation(defaultZoom, 250, function() {
+                    startZoomAnimation(defaultZoom, ANIM_DURATION, function() {
                         zoomLevel = defaultZoom;
                         applyZoom();
                     });
