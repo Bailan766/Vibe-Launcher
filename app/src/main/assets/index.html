@@ -1904,13 +1904,47 @@ const updateBatteryDisplay = () => {
                     }
                 }
 
-                backBtn.addEventListener('click', function() {
+                const closeSettings = function() {
                     overlay.style.display = 'none';
                     canvas.style.pointerEvents = 'auto';
                     startZoomAnimation(defaultZoom, 250, function() {
                         zoomLevel = defaultZoom;
                         applyZoom();
                     });
+                };
+
+                backBtn.addEventListener('click', closeSettings);
+
+                // Click outside card to close
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) closeSettings();
+                });
+
+                // Swipe to dismiss
+                let settingsTouchX = 0;
+                const card = document.getElementById('settings-card');
+                overlay.addEventListener('touchstart', function(e) {
+                    if (e.target === overlay) { settingsTouchX = e.touches[0].clientX; }
+                }, { passive: true });
+                overlay.addEventListener('touchmove', function(e) {
+                    if (e.target === overlay) {
+                        const dx = e.touches[0].clientX - settingsTouchX;
+                        card.style.transform = 'translateX(' + dx + 'px)';
+                        card.style.transition = 'none';
+                    }
+                }, { passive: true });
+                overlay.addEventListener('touchend', function(e) {
+                    if (e.target === overlay) {
+                        const dx = parseFloat(card.style.transform.replace('translateX(','').replace('px)','')) || 0;
+                        card.style.transition = 'transform 0.25s ease';
+                        if (Math.abs(dx) > 100) {
+                            card.style.transform = 'translateX(' + (dx > 0 ? 400 : -400) + 'px)';
+                            card.style.opacity = '0';
+                            setTimeout(closeSettings, 250);
+                        } else {
+                            card.style.transform = 'translateX(0)';
+                        }
+                    }
                 });
 
                 const clearBtn = document.getElementById('s-clear-cache');
