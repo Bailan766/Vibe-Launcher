@@ -638,17 +638,28 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
                 timeSprite.material.needsUpdate = true;
             }
 
-            const startTimeTextureUpdates = () => {
-                stopTimeTextureUpdates();
-                updateTimeSpriteTexture();
-                timeTextureUpdateInterval = setInterval(async function() {
-                    if (timeSprite && timeSprite.material) {
-                        updateTimeSpriteTexture();
-                    }
-                }, 30000);
-            }
+            const scheduleMinuteUpdate = () => {
+                if (timeTextureUpdateInterval) clearTimeout(timeTextureUpdateInterval);
+                const now = new Date();
+                const msToNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+                timeTextureUpdateInterval = setTimeout(() => {
+                    updateTimeSpriteTexture();
+                    try { updateBatteryFromNative(); } catch(e) {}
+                    scheduleMinuteUpdate();
+                }, msToNextMinute + 50); // +50ms 确保跨过分钟边界
+            };
 
-            function stopTimeTextureUpdates() {}
+            const startTimeTextureUpdates = () => {
+                updateTimeSpriteTexture();
+                scheduleMinuteUpdate();
+            };
+
+            const stopTimeTextureUpdates = () => {
+                if (timeTextureUpdateInterval) {
+                    clearTimeout(timeTextureUpdateInterval);
+                    timeTextureUpdateInterval = null;
+                }
+            };
 
             // ========== 进入/退出时间视图 ==========
             const enterTimeView = (animate, onComplete) => {
@@ -1912,7 +1923,20 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
                     if (oldMap && oldMap !== tex) oldMap.dispose();
                 }).catch(function(e) { console.warn('html2canvas error:', e); if (page.style.zIndex !== '100') page.style.visibility = 'hidden'; });
             }
-const updateBatteryDisplay = () => {
+let _lastBatteryLevel = -1;
+            const updateBatteryFromNative = () => {
+                try {
+                    const bl = JSON.parse(NativeBridge.getBatteryLevel());
+                    const level = bl.success ? bl.level : -1;
+                    if (level !== _lastBatteryLevel) {
+                        _lastBatteryLevel = level;
+                        updateBatteryDisplay();
+                        // 电量变化触发纹理更新
+                        if (isInTimeView) renderTimePageToTexture();
+                    }
+                } catch(e) {}
+            };
+            const updateBatteryDisplay = () => {
                 try {
                     const batteryEl = document.getElementById('time-page-battery');
                     if (!batteryEl) return;
@@ -1938,7 +1962,8 @@ const updateBatteryDisplay = () => {
                 }
                 tick();
                 if (_timePageTimer) clearInterval(_timePageTimer);
-                _timePageTimer = setInterval(function() { tick(); updateBatteryDisplay(); }, 1000);
+                _timePageTimer = setInterval(function() { tick(); }, 1000);
+                updateBatteryFromNative();
             }
             startTimePageClock();
             setTimeout(function() { renderTimePageToTexture(); }, 100);
