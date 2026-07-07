@@ -510,6 +510,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
 
             function startZoomAnimation(targetVal, duration, callback) {
                 zoomAnimStart = performance.now();
+                wakeUp();
                 zoomAnimDuration = duration || 250;
                 zoomAnimStartVal = zoomLevel;
                 zoomAnimEndVal = targetVal;
@@ -1874,8 +1875,16 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
             });
 
             // ========== 动画循环 ==========
+            let animFrameId = null;
+            const isBusy = () => {
+                return !!zoomAnimStart || !!rotationAnimData || inertiaStrength > INERTIA_MIN || isDragging;
+            };
+            const wakeUp = () => {
+                if (!animFrameId) {
+                    animFrameId = requestAnimationFrame(animate);
+                }
+            };
             const animate = (timestamp) => {
-                requestAnimationFrame(animate);
                 const now = timestamp || performance.now();
                 updateZoomAnimation(now);
                 updateRotationAnimation(now);
@@ -1895,7 +1904,19 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
                     }
                 }
                 renderer.render(scene, camera);
-            }
+                if (isBusy()) {
+                    animFrameId = requestAnimationFrame(animate);
+                } else {
+                    animFrameId = null;
+                }
+            };
+            // 首次启动
+            animFrameId = requestAnimationFrame(animate);
+            // 任何输入都唤醒
+            document.addEventListener('pointerdown', wakeUp, { passive: true });
+            document.addEventListener('pointermove', wakeUp, { passive: true });
+            document.addEventListener('wheel', wakeUp, { passive: true });
+            document.addEventListener('touchstart', wakeUp, { passive: true });
 
             const renderTimePageToTexture = () => {
                 const page = document.getElementById('time-page');
