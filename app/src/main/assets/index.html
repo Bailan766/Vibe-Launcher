@@ -809,12 +809,6 @@ window._totalItems = totalItems;
                 const isHbar = (layoutMode === 'hbar');
                 const isFlatring = (layoutMode === 'flatring');
 
-                if (isHemi) {
-                    const bc = totalItems.length;
-                    for (let ri = 0; ri < bc; ri++) {
-                        totalItems.push({
-                            type: 'redTest',
-                            data: { packageName: '__red__' + ri, appName: '红', isSystem: true },
                             colorIndex: bc + ri
                         });
                     }
@@ -866,35 +860,21 @@ window._totalItems = totalItems;
                         v.applyQuaternion(alignQuat);
                         return v;
                     });
-                    if (isHemi) {
-                        allRotated.sort(function(a, b) { return b.z - a.z; });
                     }
                 }
                 const rotatedPoints = allRotated;
 
-                // Ensure time[0] and settings[1] get the two closest-to-camera positions
-                (function() {
-                    // Find indices of two highest-z positions
-                    let b1 = 0, b2 = 1;
-                    if (rotatedPoints[1].z > rotatedPoints[0].z) { b1 = 1; b2 = 0; }
-                    for (let zi = 2; zi < rotatedPoints.length; zi++) {
-                        if (rotatedPoints[zi].z > rotatedPoints[b1].z) { b2 = b1; b1 = zi; }
-                        else if (rotatedPoints[zi].z > rotatedPoints[b2].z) { b2 = zi; }
+                // Sort by z descending so time[0]&settings[1] get closest-to-camera positions
+                {
+                    const indexed = rotatedPoints.map((p, i) => ({ p, i }));
+                    indexed.sort((a, b) => b.p.z - a.p.z);
+                    const newPts = indexed.map(x => x.p);
+                    const newItems = indexed.map(x => totalItems[x.i]);
+                    for (let zi = 0; zi < rotatedPoints.length; zi++) {
+                        rotatedPoints[zi] = newPts[zi];
+                        totalItems[zi] = newItems[zi];
                     }
-                    // Direct swap: time(0)→b1, settings(1)→b2
-                    function swap(arr, i, j) { const t = arr[i]; arr[i] = arr[j]; arr[j] = t; }
-                    if (b1 === 1 && b2 === 0) {
-                        // Simple: time and settings just swap with each other
-                        swap(rotatedPoints, 0, 1);
-                        swap(totalItems, 0, 1);
-                    } else {
-                        if (b1 !== 0) { swap(rotatedPoints, 0, b1); swap(totalItems, 0, b1); }
-                        // After 0↔b1, re-find where settings target is
-                        if (b2 === 0) b2 = b1; // b2 was at 0, now it's at b1
-                        else if (b2 === b1) b2 = 0; // b2 was at b1, now it's at 0
-                        if (b2 !== 1) { swap(rotatedPoints, 1, b2); swap(totalItems, 1, b2); }
-                    }
-                })();
+                }
 
                 for (let j = 0; j < N; j++) {
                     const item = totalItems[j];
@@ -1003,7 +983,7 @@ window._totalItems = totalItems;
                                 v.applyQuaternion(aq);
                                 return v;
                             });
-                            if (layoutMode === 'hemisphere') rawPts.sort(function(a, b) { return b.z - a.z; });
+                            rawPts.sort(function(a, b) { return b.z - a.z; });
                         }
                         for (let k = 0; k < sprites.length; k++) {
                             if (k < rawPts.length) sprites[k].position.copy(rawPts[k]);
@@ -1998,7 +1978,7 @@ const updateBatteryDisplay = () => {
                                 v.applyQuaternion(alignQ);
                                 return v;
                             });
-                            if (layoutMode === 'hemisphere') rawPoints.sort(function(a, b) { return b.z - a.z; });
+                            rawPoints.sort(function(a, b) { return b.z - a.z; });
                         }
                         for (let k = 0; k < sprites.length; k++) {
                             if (k < rawPoints.length) {
