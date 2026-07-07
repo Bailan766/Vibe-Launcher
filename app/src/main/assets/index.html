@@ -1102,6 +1102,8 @@ updateSphereMinHint();
                 timeViewZoom = computeTimeViewZoom();
 
                 console.log('createSprites DONE, calling hideLoadingIfReady');
+                // 初始化时间精灵纹理
+                setTimeout(() => renderTimePageToTexture(), 500);
                 hideLoadingIfReady();  // 先隐藏loading
                 enterTimeView(true, function() {
                     enterAnimationComplete = true;
