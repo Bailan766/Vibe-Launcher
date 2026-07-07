@@ -1146,9 +1146,7 @@ window._totalItems = totalItems;
                     exitTimeView(true);
                     return;
                 }
-                // 兜底：重置摄像头拉近（类似双击）
-                rotationQuat.identity();
-                sphereGroup.quaternion.identity();
+                // 兜底：重置摄像头拉近（保留当前朝向）
                 inertiaQ.identity();
                 inertiaStrength = 0;
                 zoomLevel = defaultZoom;
