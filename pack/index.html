@@ -134,22 +134,21 @@
         visibility:hidden; z-index:-1;
         background:transparent; color:#fff;
         font-family:'SF Pro Display','Segoe UI','PingFang SC','Helvetica Neue',sans-serif;
+        display:flex; flex-direction:column; justify-content:flex-start; align-items:center;
+        padding-top:8vh;
     ">
         <div id="time-page-clock" style="
-            position:absolute; top:50%; left:0; right:0;
-            transform:translateY(-60%);
-            text-align:center; font-size:26vw; font-weight:bold;
+            text-align:center; font-size:26vw; font-weight:bold; line-height:1;
             color:#fff;
             text-shadow:0 0 3vw rgba(255,255,255,0.4);
         ">12:00</div>
         <div id="time-page-date" style="
-            position:absolute; bottom:25vh; left:0; right:0;
-            text-align:center; font-size:5vw;
+            text-align:center; font-size:5vw; margin-top:2vh;
             color:rgba(255,255,255,0.7);
         ">1月1日 周一</div>
+        <div style="flex:1;"></div>
         <div id="time-page-battery" style="
-            position:absolute; bottom:5vh; left:0; right:0;
-            text-align:center; font-size:4vw;
+            text-align:center; font-size:4vw; padding-bottom:5vh;
             color:rgba(255,255,255,0.5);
         ">🔋 --%</div>
     </div>
