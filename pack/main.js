@@ -365,6 +365,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
             };
 
             const updateTimeSpriteBgOnly = function() {
+                _texVersion++; // invalidate any pending async render
                 if (!timeSprite || !timeSprite.material) return;
                 var s = Math.max(window.innerWidth, window.innerHeight);
                 var c = document.createElement('canvas');
@@ -387,7 +388,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
                 if (tp && tp.style.visibility === 'visible') {
                     syncTimeSpriteTexture();
                 } else {
-                    renderTimePageToTexture();
+                    console.log('[TIME-TEX] full'); renderTimePageToTexture();
                 }
             };
 
@@ -485,7 +486,7 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
                         if (onComplete) onComplete();
                         // 显示原生时间页面覆盖层（最高分辨率）
                         const tp = document.getElementById('time-page');
-                        if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; tp.style.pointerEvents = 'none'; }
+                        if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; console.log('[TIME-DOM] SHOW'); tp.style.pointerEvents = 'none'; console.log('[TIME-DOM] SHOW'); }
                         syncTimeSpriteTexture();
                     });
                 } else {
@@ -493,7 +494,7 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
                     applyZoom();
                     if (onComplete) onComplete();
                     const tp = document.getElementById('time-page');
-                    if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; tp.style.pointerEvents = 'none'; }
+                    if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; console.log('[TIME-DOM] SHOW'); tp.style.pointerEvents = 'none'; console.log('[TIME-DOM] SHOW'); }
                     syncTimeSpriteTexture();
                 }
             }
@@ -503,7 +504,7 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
                 isInTimeView = false;
                 // 隐藏原生时间页面
                 const tp = document.getElementById('time-page');
-                if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; tp.style.pointerEvents = 'none'; }
+                if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; tp.style.pointerEvents = 'none'; console.log('[TIME-DOM] HIDE'); }
                 syncTimeSpriteTexture()
                 cancelZoomAnimation();
                 rotationAnimData = null;
@@ -555,7 +556,7 @@ let zoomComplete = false, rotationComplete = false;
                 const checkBothComplete = () => {
                     if (zoomComplete && rotationComplete) {
                         const tp = document.getElementById('time-page');
-                        if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; tp.style.pointerEvents = 'none'; }
+                        if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; console.log('[TIME-DOM] SHOW'); tp.style.pointerEvents = 'none'; console.log('[TIME-DOM] SHOW'); }
                         syncTimeSpriteTexture();
                     }
                 }
@@ -1323,8 +1324,8 @@ updateMouse(e.clientX, e.clientY);
                     }
                     if (bottomSwipeData.confirmed || deltaY > 8) {
                         bottomSwipeData.confirmed = true;
-                        // 有上滑意图：立即隐藏原生DOM
-                        const tp = document.getElementById('time-page');
+                        // 有上滑意图: 立即隐藏原生DOM
+                        console.log('[TIME-SWIPE] exit intent'); const tp = document.getElementById('time-page');
                         if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; }
                         const screenH = window.innerHeight;
                         const maxDelta = screenH * 0.7;
@@ -1422,7 +1423,7 @@ updateMouse(e.clientX, e.clientY);
                                 applyZoom();
                                 // 恢复原生时间覆盖层
                                 const tp = document.getElementById('time-page');
-                                if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; }
+                                if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; console.log('[TIME-DOM] SHOW'); }
                                 syncTimeSpriteTexture();
                             });
                         }
@@ -1432,12 +1433,12 @@ updateMouse(e.clientX, e.clientY);
                                 zoomLevel = timeViewZoom;
                                 applyZoom();
                                 const tp = document.getElementById('time-page');
-                                if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; }
+                                if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; console.log('[TIME-DOM] SHOW'); }
                                 syncTimeSpriteTexture();
                             });
                         } else {
                             const tp = document.getElementById('time-page');
-                            if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; }
+                            if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; console.log('[TIME-DOM] SHOW'); }
                         }
                     }
                     if (activePointerIds.size === 0) {
@@ -1712,10 +1713,12 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
             document.addEventListener('wheel', wakeUp, { passive: true });
             document.addEventListener('touchstart', wakeUp, { passive: true });
 
+            let _texVersion = 0;
             const renderTimePageToTexture = () => {
                 const page = document.getElementById('time-page');
                 if (!page || !timeSprite || !timeSprite.material || typeof html2canvas === 'undefined') return;
                 const s = Math.max(window.innerWidth, window.innerHeight);
+                var ver = ++_texVersion;
 
                 page.style.visibility = 'visible';
                 html2canvas(page, { scale: 1, useCORS: true, backgroundColor: null }).then(function(domCanvas) {
@@ -1747,6 +1750,7 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
                     timeSprite.material.map = tex;
                     timeSprite.material.needsUpdate = true;
                     if (oldMap && oldMap !== tex) oldMap.dispose();
+                    if (ver !== _texVersion) { console.log('[TIME-TEX] skip stale (ver=' + ver + ' current=' + _texVersion + ')'); return; }
                 }).catch(function(e) { console.warn('html2canvas error:', e); if (page.style.zIndex !== '100') page.style.visibility = 'hidden'; });
             }
 let _lastBatteryLevel = -1;
@@ -1796,7 +1800,7 @@ let _lastBatteryLevel = -1;
             document.addEventListener('visibilitychange', function() {
                 if (document.hidden) {
                     const tp = document.getElementById('time-page');
-                    if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; tp.style.pointerEvents = 'none'; }
+                    if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; tp.style.pointerEvents = 'none'; console.log('[TIME-DOM] HIDE'); }
                 } else if (!document.hidden && !isInTimeView && zoomTarget === null) {
                     startZoomAnimation(defaultZoom, ANIM_DURATION, function() {
                         zoomLevel = defaultZoom;
