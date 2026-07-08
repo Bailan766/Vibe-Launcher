@@ -381,6 +381,15 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
                 timeSprite.material.needsUpdate = true;
                 if (oldMap && oldMap !== tex) oldMap.dispose();
             };
+            // 状态机：DOM可见 → bg-only，DOM隐藏 → full
+            const syncTimeSpriteTexture = function() {
+                var tp = document.getElementById('time-page');
+                if (tp && tp.style.visibility === 'visible') {
+                    updateTimeSpriteBgOnly();
+                } else {
+                    renderTimePageToTexture();
+                }
+            };
 
             const drawCircleBackground = function(ctx, cx, cy, r, s) {
                 var bg = _timeBgImg || _wallpaperImg;
@@ -491,11 +500,10 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
             const exitTimeView = (animate, callback) => {
                 if (!isInTimeView) return;
                 isInTimeView = false;
-                // 立即恢复完整时间纹理
-                renderTimePageToTexture();
                 // 隐藏原生时间页面
                 const tp = document.getElementById('time-page');
                 if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; tp.style.pointerEvents = 'none'; }
+                syncTimeSpriteTexture()
                 cancelZoomAnimation();
                 rotationAnimData = null;
                 stopTimeTextureUpdates();
