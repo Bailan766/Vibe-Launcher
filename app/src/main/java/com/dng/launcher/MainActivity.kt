@@ -17,7 +17,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.content.SharedPreferences
 import androidx.activity.addCallback
-import androidx.activity.BackEvent
+import android.window.BackEvent
 import androidx.activity.OnBackAnimationCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
