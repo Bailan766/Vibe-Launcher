@@ -8,7 +8,7 @@ import { state } from './state.js';
                         state._lastBatteryLevel = level;
                         updateBatteryDisplay();
                         // 电量变化触发纹理更新
-                        syncTimeSpriteTexture();
+                        state.syncTimeSpriteTexture();
                     }
                 } catch(e) {}
             };

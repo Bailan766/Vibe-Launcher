@@ -97,7 +97,7 @@ let cx = s / 2, cy = s / 2, r = s * 0.44;
                         }
                     }
                     syncTimeSpriteTexture();
-                    try { updateBatteryFromNative(); } catch(e) {}
+                    try { state.updateBatteryFromNative(); } catch(e) {}
                     scheduleMinuteUpdate();
                 }, wait);
             };
@@ -267,3 +267,8 @@ let zoomComplete = false, rotationComplete = false;
                 }).catch(function(e) { console.warn('html2canvas error:', e); if (_wasHidden) page.style.visibility = 'hidden'; });
             }
 let _lastBatteryLevel = -1;
+// State syncs
+state.updateTimeSpriteBgOnly = updateTimeSpriteBgOnly;
+state.createTimeTexture = createTimeTexture;
+state.syncTimeSpriteTexture = syncTimeSpriteTexture;
+state.renderTimePageToTexture = renderTimePageToTexture;

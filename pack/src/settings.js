@@ -15,7 +15,7 @@ import { createSprites } from './sprites.js';
                         document.body.style.backgroundSize = 'cover';
                         document.body.style.backgroundPosition = 'center';
                         var img = new Image();
-                        img.onload = function() { _wallpaperImg = img; updateTimeSpriteBgOnly(); };
+                        img.onload = function() { _wallpaperImg = img; state.updateTimeSpriteBgOnly(); };
                         img.src = r.path;
                     }
                 } catch(e) {}
@@ -34,8 +34,8 @@ import { createSprites } from './sprites.js';
             wallpaperRemoveBtn.onclick = function() {
                 document.body.style.backgroundImage = 'none';
                 _wallpaperImg = null;
-                updateTimeSpriteBgOnly();
-                renderTimePageToTexture();
+                state.updateTimeSpriteBgOnly();
+                state.renderTimePageToTexture();
                 wallpaperPickBtn.textContent = '选择图片';
                 if (typeof NativeBridge !== 'undefined') NativeBridge.removeWallpaper();
             };
@@ -58,8 +58,8 @@ import { createSprites } from './sprites.js';
                                 img.onload = function() {
                                     URL.revokeObjectURL(url);
                                     _timeBgImg = img;
-                                    updateTimeSpriteBgOnly();
-                                    renderTimePageToTexture();
+                                    state.updateTimeSpriteBgOnly();
+                                    state.renderTimePageToTexture();
                                 };
                                 img.src = url;
                             }
@@ -67,7 +67,7 @@ import { createSprites } from './sprites.js';
                         xhr.onerror = function() {
                             // fallback: 直接img.src
                             var img = new Image();
-                            img.onload = function() { _timeBgImg = img; updateTimeSpriteBgOnly(); renderTimePageToTexture(); };
+                            img.onload = function() { _timeBgImg = img; state.updateTimeSpriteBgOnly(); state.renderTimePageToTexture(); };
                             img.src = r.path;
                         };
                         xhr.send();
@@ -80,8 +80,8 @@ import { createSprites } from './sprites.js';
             };
             timeBgRemoveBtn.onclick = function() {
                 _timeBgImg = null; _timeBgPath = null;
-                updateTimeSpriteBgOnly();
-                renderTimePageToTexture();
+                state.updateTimeSpriteBgOnly();
+                state.renderTimePageToTexture();
                 timeBgPickBtn.textContent = '选择图片';
                 if (typeof NativeBridge !== 'undefined') NativeBridge.removeTimeBg();
             };
@@ -200,20 +200,20 @@ import { createSprites } from './sprites.js';
                             console.log('Rebuilding textures at ICON_RES:', state.ICON_RES);
                             sprites.forEach(function(spr) {
                                 if (spr.userData.isTimeSprite) {
-                                    spr.material.map = createTimeTexture();
+                                    spr.material.map = state.createTimeTexture();
                                 } else if (spr.userData.app && spr.userData.app.packageName === '__settings__') {
                                     spr.material.map = createGearTexture();
                                 } else if (spr.userData._iconUrl) {
                                     (function(s) {
                                         const img = new Image();
                                         img.onload = function() {
-                                            s.material.map = createIconTextureFromImage(img);
+                                            s.material.map = state.createIconTextureFromImage(img);
                                             s.material.needsUpdate = true;
                                         };
                                         img.src = s.userData._iconUrl;
                                     })(spr);
                                 } else if (spr.userData.color) {
-                                    spr.material.map = createPlaceholderTexture(spr.userData.app.appName, spr.userData.color);
+                                    spr.material.map = state.createPlaceholderTexture(spr.userData.app.appName, spr.userData.color);
                                 }
                                 spr.material.needsUpdate = true;
                             });

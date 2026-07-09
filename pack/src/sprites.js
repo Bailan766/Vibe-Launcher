@@ -445,13 +445,13 @@ state.updateSphereMinHint();
                         var targetQuat = new THREE.Quaternion().setFromUnitVectors(targetDir, new THREE.Vector3(0, 0, 1));
                         state.startRotationAnimation(targetQuat, state.ANIM_DURATION, function() {
                             if (state.cancelableAction && !state.cancelableAction.cancelled) {
-                                state.cancelableAction.rotDone = true; tryCommitCancelable();
+                                state.cancelableAction.rotDone = true; state.tryCommitCancelable();
                             }
                         });
                         state.startZoomAnimation(state.cancelableAction.zoomTarget, state.ANIM_DURATION, function() {
                             if (state.cancelableAction && !state.cancelableAction.cancelled) {
                                 state.zoomLevel = state.cancelableAction.zoomTarget; state.applyZoom();
-                                state.cancelableAction.zoomDone = true; tryCommitCancelable();
+                                state.cancelableAction.zoomDone = true; state.tryCommitCancelable();
                             }
                         });
                     } else {
@@ -540,7 +540,7 @@ state.updateSphereMinHint();
                 }
                 // 优先级：菜单 > 设置 > 动画 > 时间视图 > 重置摄像头
                 if (state.contextMenuOpen) {
-                    hideContextMenu();
+                    state.hideContextMenu();
                     return;
                 }
                 var overlay = document.getElementById("settings-overlay");
@@ -555,7 +555,7 @@ state.updateSphereMinHint();
                     return;
                 }
                 if (state.cancelableAction && state.cancelableAction.phase === 'animating') {
-                    cancelCurrentAction('back');
+                    state.cancelCurrentAction('back');
                     return;
                 }
                 if (state.isInTimeView) {

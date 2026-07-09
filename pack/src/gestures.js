@@ -104,7 +104,7 @@ import { materialEasing } from './utils.js';
                     if (tp && tp.style.visibility === 'visible' && tp.style.zIndex === '100') {
                         tp.style.visibility = 'hidden'; tp.style.zIndex = '-1';
                         state._pointerDownCount++;
-                        syncTimeSpriteTexture();
+                        state.syncTimeSpriteTexture();
                     }
                 }
                 // 可取消动作进行中：上滑跟手取消
@@ -200,7 +200,7 @@ state.updateMouse(e.clientX, e.clientY);
                 if (contextMenuOpen) { state.activePointerIds.delete(e.pointerId); return; }
                 // 可取消动作进行中 + 拖动 = 取消
                 if (cancelableAction && cancelableAction.phase === 'animating' && state.isDragging && state.hasMoved) {
-                    cancelCurrentAction('drag'); state.recentSpeeds = []; state.hasMoved = false; state.isDragging = false; return;
+                    state.cancelCurrentAction('drag'); state.recentSpeeds = []; state.hasMoved = false; state.isDragging = false; return;
                 }
                 state.updateMouse(e.clientX, e.clientY);
                 if (!state.isInTimeView && state.topSwipeData && state.topSwipeData.active && state.topSwipeData.pointerId === e.pointerId && state.activePointerIds.size === 1) {
@@ -230,7 +230,7 @@ state.updateMouse(e.clientX, e.clientY);
                         // 有上滑意图: 立即隐藏原生DOM
                         console.log('[TIME-SWIPE] exit intent'); const tp = document.getElementById('time-page');
                         if (tp) { tp.style.visibility = 'hidden'; tp.style.zIndex = '-1'; }
-                        syncTimeSpriteTexture();
+                        state.syncTimeSpriteTexture();
                         const screenH = window.innerHeight;
                         const maxDelta = screenH * 0.7;
                         const clampedDelta = Math.max(0, Math.min(maxDelta, deltaY));
@@ -323,14 +323,14 @@ state.updateMouse(e.clientX, e.clientY);
                         var progressDown = (sd.startZoom - state.zoomLevel) / Math.max(0.001, sd.startZoom - (cancelableAction.zoomTarget || state.defaultZoom));
                         if (state.zoomLevel >= sd.startZoom && progressUp > 0.35) {
                             // 上滑超过阈值：取消
-                            cancelCurrentAction('swipe');
+                            state.cancelCurrentAction('swipe');
                         } else if (state.zoomLevel < sd.startZoom && progressDown > 0.35) {
                             // 下滑超过阈值：直接完成展开
                             state.cancelZoomAnimation();
                             state.startZoomAnimation(cancelableAction.zoomTarget, 150, function() {
                                 state.zoomLevel = cancelableAction.zoomTarget; state.applyZoom();
                                 if (cancelableAction && !cancelableAction.cancelled) {
-                                    cancelableAction.zoomDone = true; tryCommitCancelable();
+                                    cancelableAction.zoomDone = true; state.tryCommitCancelable();
                                 }
                             });
                             var targetSprite = cancelableAction.sprite;
@@ -338,7 +338,7 @@ state.updateMouse(e.clientX, e.clientY);
                             var targetQuat = new THREE.Quaternion().setFromUnitVectors(targetDir, new THREE.Vector3(0, 0, 1));
                             state.startRotationAnimation(targetQuat, 150, function() {
                                 if (cancelableAction && !cancelableAction.cancelled) {
-                                    cancelableAction.rotDone = true; tryCommitCancelable();
+                                    cancelableAction.rotDone = true; state.tryCommitCancelable();
                                 }
                             });
                         } else {
@@ -347,7 +347,7 @@ state.updateMouse(e.clientX, e.clientY);
                             state.startZoomAnimation(cancelableAction.zoomTarget, state.ANIM_DURATION, function() {
                                 state.zoomLevel = cancelableAction.zoomTarget; state.applyZoom();
                                 if (cancelableAction && !cancelableAction.cancelled) {
-                                    cancelableAction.zoomDone = true; tryCommitCancelable();
+                                    cancelableAction.zoomDone = true; state.tryCommitCancelable();
                                 }
                             });
                             var targetSprite = cancelableAction.sprite;
@@ -355,7 +355,7 @@ state.updateMouse(e.clientX, e.clientY);
                             var targetQuat = new THREE.Quaternion().setFromUnitVectors(targetDir, new THREE.Vector3(0, 0, 1));
                             state.startRotationAnimation(targetQuat, state.ANIM_DURATION, function() {
                                 if (cancelableAction && !cancelableAction.cancelled) {
-                                    cancelableAction.rotDone = true; tryCommitCancelable();
+                                    cancelableAction.rotDone = true; state.tryCommitCancelable();
                                 }
                             });
                         }
@@ -399,7 +399,7 @@ state.updateMouse(e.clientX, e.clientY);
                                 // 恢复原生时间覆盖层
                                 const tp = document.getElementById('time-page');
                                 if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; console.log('[TIME-DOM] SHOW'); }
-                                syncTimeSpriteTexture();
+                                state.syncTimeSpriteTexture();
                             });
                         }
                     } else {
@@ -409,7 +409,7 @@ state.updateMouse(e.clientX, e.clientY);
                                 state.applyZoom();
                                 const tp = document.getElementById('time-page');
                                 if (tp) { tp.style.visibility = 'visible'; tp.style.zIndex = '100'; console.log('[TIME-DOM] SHOW'); }
-                                syncTimeSpriteTexture();
+                                state.syncTimeSpriteTexture();
                             });
                         } else {
                             const tp = document.getElementById('time-page');
