@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu';
+import { initScene } from './src/scene.js';
 import html2canvas from 'html2canvas';
 window.THREE = THREE;
 
@@ -83,41 +84,10 @@ console.log("IIFE starting, THREE:", typeof THREE);
             const labelEl = document.getElementById('appLabel');
             const loadingEl = document.getElementById('loadingIndicator');
 
-            // ========== 场景 ==========
-            const scene = new THREE.Scene();
-            // scene background controlled by CSS (wallpaper support)
-            const FAR_PLANE = 1e8;
-            const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, FAR_PLANE);
-let renderer = null, rendererType = 'unknown';
-
-// WebGPURenderer has built-in WebGL fallback (WebGLBackend)
-if (typeof THREE.WebGPURenderer !== 'undefined') {
-    try {
-        renderer = new THREE.WebGPURenderer({ antialias: true, alpha: true });
-        await renderer.init();
-        rendererType = 'WebGPU';
-        console.log('✅ WebGPU renderer');
-    } catch(e) { console.warn('WebGPU failed:', e.message); renderer = null; }
-}
-
-if (!renderer) {
-    loadingEl.textContent = '不支持3D渲染，请使用支持的设备';
-    loadingEl.style.display = 'flex';
-    return;
-}
-
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            if (renderer.outputColorSpace !== undefined) {
-                renderer.outputColorSpace = THREE.SRGBColorSpace;
-            }
-            document.body.appendChild(renderer.domElement);
-            const canvas = renderer.domElement;
-
-            // 精灵(SpriteMaterial)自发光，无需光照
-
-            const sphereGroup = new THREE.Group();
-            scene.add(sphereGroup);
+            // ========== 场景（从 scene.js 导入）==========
+            const sceneInit = await initScene(loadingEl);
+            if (!sceneInit) return;
+            const { scene, camera, renderer, rendererType, canvas, sphereGroup } = sceneInit;
 
             // ========== 常量 ==========
             let SPHERE_RADIUS = 2.5, layoutMode = 'sphere';
