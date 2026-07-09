@@ -400,7 +400,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
 
             // ========== 时间纹理 ==========
             // 壁纸缓存
-            let _wallpaperImg = null, _timeBgImg = null;
+            let _wallpaperImg = null, _timeBgImg = null, _timeBgPath = null;
             (function preloadWallpaper() {
                 if (typeof NativeBridge !== 'undefined') {
                     try { var raw = NativeBridge.getWallpaperPath(); var r = JSON.parse(raw);
@@ -440,6 +440,8 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
                 timeSprite.material.map = tex;
                 timeSprite.material.needsUpdate = true;
                 if (oldMap && oldMap !== tex) oldMap.dispose();
+                // Force re-render
+                if (renderer) renderer.render(scene, camera);
             };
             // 状态机：DOM可见 → bg-only，DOM隐藏 → full
             const syncTimeSpriteTexture = function() {
@@ -2253,7 +2255,7 @@ let _lastBatteryLevel = -1;
             window._onTimeBgPicked = function(json) {
                 try { var r = typeof json === 'string' ? JSON.parse(json) : json;
                     if (r.success) {
-                        var img = new Image(); img.onload = function() { _timeBgImg = img; updateTimeSpriteBgOnly(); renderTimePageToTexture(); }; img.src = r.path;
+                        _timeBgPath = r.path; var img = new Image(); img.onload = function() { _timeBgImg = img; updateTimeSpriteBgOnly(); renderTimePageToTexture(); }; img.src = r.path;
                         timeBgPickBtn.textContent = '重新选择';
                     }
                 } catch(e) {}
@@ -2262,7 +2264,7 @@ let _lastBatteryLevel = -1;
                 if (typeof NativeBridge !== 'undefined') NativeBridge.pickTimeBg();
             };
             timeBgRemoveBtn.onclick = function() {
-                _timeBgImg = null;
+                _timeBgImg = null; _timeBgPath = null;
                 updateTimeSpriteBgOnly();
                 renderTimePageToTexture();
                 timeBgPickBtn.textContent = '选择图片';
