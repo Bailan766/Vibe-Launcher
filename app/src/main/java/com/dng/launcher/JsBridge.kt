@@ -36,6 +36,26 @@ class JsBridge(context: Context, webView: WebView) {
 
     @Volatile private var appListCache: List<AppInfo>? = null
 
+    companion object {
+        private var webViewRefStatic: WeakReference<WebView>? = null
+
+        fun setWebView(wv: WebView) {
+            webViewRefStatic = WeakReference(wv)
+        }
+
+        fun notifyNewNotification(info: VibeNotificationListener.NotifInfo) {
+            val wv = webViewRefStatic?.get() ?: return
+            try {
+                val json = Gson().toJson(info)
+                wv.post {
+                    wv.evaluateJavascript("window._onNotificationPosted(${json});", null)
+                }
+            } catch (e: Exception) {
+                Log.e("JsBridge", "notifyNewNotification error: ${e.message}")
+            }
+        }
+    }
+
     @JavascriptInterface
     fun crashTest() {
         throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
@@ -70,7 +90,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun requestAppIcons(packageNamesJson: String, iconRes: Int) {
         val targetSize = iconRes.coerceIn(16, 4096)
         executor.execute {
@@ -112,7 +131,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun launchApp(packageName: String): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -127,7 +145,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun uninstallApp(packageName: String): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -141,7 +158,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun openAppDetails(packageName: String): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -156,7 +172,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun getBatteryLevel(): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -169,7 +184,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun isCharging(): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -195,7 +209,6 @@ class JsBridge(context: Context, webView: WebView) {
     data class IconResult(val packageName: String, val iconUrl: String)
 
     @JavascriptInterface
-
     fun goBack(): String {
         return try {
             webViewRef.get()?.post {
@@ -208,7 +221,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun clearIconCache(): String {
         return try {
             iconCacheDir.listFiles()?.forEach { it.delete() }
@@ -219,7 +231,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun setHotReload(enabled: Boolean): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -233,7 +244,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun getHotReload() {
         executor.execute {
             try {
@@ -260,7 +270,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun log(msg: String) {
         Log.d("VibeLauncher", "[JS] $msg")
         val ctx = contextRef.get() ?: return
@@ -271,7 +280,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun pickWallpaper() {
         Log.d("VibeLauncher", "[wallpaper] pickWallpaper called from JS")
         val ctx = contextRef.get()
@@ -296,7 +304,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun getWallpaperPath(): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -309,7 +316,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun removeWallpaper(): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -340,7 +346,6 @@ class JsBridge(context: Context, webView: WebView) {
 
 
     @JavascriptInterface
-
     fun pickTimeBg() {
         Log.d("VibeLauncher", "[timebg] pickTimeBg called")
         val ctx = contextRef.get() ?: return
@@ -351,7 +356,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun getTimeBgPath(): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -364,7 +368,6 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
-
     fun removeTimeBg(): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -393,4 +396,128 @@ class JsBridge(context: Context, webView: WebView) {
         }
     }
 
+    // ==================== 通知相关 ====================
+
+    @JavascriptInterface
+    fun getActiveNotifications(): String {
+        return try {
+            val notifications = VibeNotificationListener.getActiveNotifications()
+            gson.toJson(mapOf("success" to true, "notifications" to notifications))
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}","notifications":[]}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun clearNotification(packageName: String): String {
+        return try {
+            val listener = VibeNotificationListener.getInstance()
+            if (listener != null) {
+                val active = listener.activeNotifications ?: arrayOf()
+                active.filter { it.packageName == packageName }.forEach {
+                    try { listener.cancelNotification(it.key) } catch (_: Exception) {}
+                }
+                """{"success":true}"""
+            } else {
+                """{"success":false,"error":"NotificationListener not active"}"""
+            }
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun openNotificationSettings(): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(intent)
+            """{"success":true}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    // ==================== 快捷方式管理 ====================
+
+    @JavascriptInterface
+    fun getPinnedShortcuts(): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val prefs = ctx.getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
+            val json = prefs.getString("pinned_shortcuts", "[]") ?: "[]"
+            """{"success":true,"shortcuts":$json}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}","shortcuts":[]}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun setPinnedShortcuts(shortcutsJson: String): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val prefs = ctx.getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("pinned_shortcuts", shortcutsJson).apply()
+            """{"success":true}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    // ==================== 主题设置 ====================
+
+    @JavascriptInterface
+    fun getThemeColor(): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val prefs = ctx.getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
+            val color = prefs.getString("theme_color", "#8ab4f8") ?: "#8ab4f8"
+            """{"success":true,"color":"$color"}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun setThemeColor(color: String): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val prefs = ctx.getSharedPreferences("vibe_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("theme_color", color).apply()
+            callback("_onThemeColorChanged", """{"success":true,"color":"$color"}""")
+            """{"success":true}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    // ==================== 搜索功能 ====================
+
+    @JavascriptInterface
+    fun searchApps(query: String): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val pm = ctx.packageManager
+            val apps = appListCache ?: run {
+                val loaded = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+                    .filter { pm.getLaunchIntentForPackage(it.packageName) != null && it.packageName != "com.dng.launcher" }
+                    .map {
+                        AppInfo(
+                            it.packageName,
+                            pm.getApplicationLabel(it).toString(),
+                            (it.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                        )
+                    }
+                    .sortedWith(compareBy(collator) { it.appName })
+                appListCache = loaded
+                loaded
+            }
+            val results = if (query.isBlank()) apps
+            else apps.filter { it.appName.contains(query, ignoreCase = true) || it.packageName.contains(query, ignoreCase = true) }
+            gson.toJson(mapOf("success" to true, "apps" to results))
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}","apps":[]}"""
+        }
+    }
 }

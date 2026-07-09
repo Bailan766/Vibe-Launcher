@@ -66,6 +66,91 @@
             pointer-events: none;
             transition: opacity 0.4s ease;
         }
+
+        /* ===== 通知面板 ===== */
+        #notification-panel {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 80; display: none; flex-direction: column;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            animation: slideDown 0.25s ease;
+        }
+        @keyframes slideDown { from { transform: translateY(-30px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+        #notif-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 20px 20px 12px; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        #notif-title { font-size: 18px; font-weight: 700; color: #fff }
+        .notif-actions { display: flex; gap: 12px; align-items: center }
+        .notif-action-btn {
+            font-size: 13px; color: rgba(255,255,255,0.4); cursor: pointer;
+            padding: 4px 8px; border-radius: 6px; transition: all 0.2s;
+        }
+        .notif-action-btn:hover { color: #fff; background: rgba(255,255,255,0.1) }
+        #notif-list {
+            flex: 1; overflow-y: auto; padding: 8px 16px;
+        }
+        #notif-list::-webkit-scrollbar { width: 3px }
+        #notif-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px }
+        .notif-item {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px; padding: 14px 16px; margin-bottom: 8px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .notif-item:active { background: rgba(255,255,255,0.08) }
+        .notif-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px }
+        .notif-title { font-size: 14px; font-weight: 600; color: #fff; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+        .notif-time { font-size: 11px; color: rgba(255,255,255,0.3); margin-left: 8px; white-space: nowrap }
+        .notif-text { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden }
+        .notif-pkg { font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 6px }
+
+        /* ===== 通知徽标 ===== */
+        #notif-badge {
+            position: fixed; top: 12px; right: 12px; z-index: 30;
+            min-width: 20px; height: 20px; border-radius: 10px;
+            background: #ff4444; color: #fff; font-size: 11px; font-weight: 700;
+            display: none; align-items: center; justify-content: center;
+            padding: 0 6px; pointer-events: auto; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(255,68,68,0.5);
+            animation: badgePop 0.3s ease;
+        }
+        @keyframes badgePop { from { transform: scale(0) } to { transform: scale(1) } }
+
+        /* ===== 搜索栏 ===== */
+        #search-bar {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 25; display: none; width: min(85vw, 400px);
+            background: rgba(30,30,50,0.9); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 24px; padding: 0; overflow: hidden;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0 } to { transform: translate(-50%, 0); opacity: 1 } }
+        #search-input {
+            width: 100%; padding: 14px 20px; font-size: 15px;
+            background: transparent; color: #fff; border: none; outline: none;
+            font-family: inherit;
+        }
+        #search-input::placeholder { color: rgba(255,255,255,0.3) }
+        #search-results {
+            max-height: 300px; overflow-y: auto; border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        #search-results::-webkit-scrollbar { width: 3px }
+        #search-results::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px }
+        .search-result-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 20px; cursor: pointer; transition: background 0.15s;
+        }
+        .search-result-item:active { background: rgba(255,255,255,0.08) }
+        .search-result-icon {
+            width: 36px; height: 36px; border-radius: 8px;
+            background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;
+            font-size: 18px; color: rgba(255,255,255,0.6); flex-shrink: 0;
+        }
+        .search-result-name { font-size: 14px; color: #fff }
+        .search-result-pkg { font-size: 11px; color: rgba(255,255,255,0.3) }
+
     #settings-overlay {
     position:fixed;top:0;left:0;right:0;bottom:0;z-index:50;
     background:rgba(0,0,0,0.6);display:none;justify-content:center;align-items:center;
@@ -76,9 +161,9 @@
     width:min(88vw,88vh);aspect-ratio:1;
     display:flex;flex-direction:column;
     overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);
-    animation:slideUp 0.3s ease;
+    animation:slideUpSettings 0.3s ease;
 }
-@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes slideUpSettings{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
 #settings-header {
     display:flex;justify-content:space-between;align-items:center;
     padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.06);
@@ -141,6 +226,34 @@
 .settings-row{display:flex;gap:8px;align-items:center}
 .settings-sphere{display:flex;align-items:center;gap:8px}
 .settings-hint{font-size:13px;color:rgba(255,255,255,0.4);white-space:nowrap}
+
+/* ===== 主题色选择器 ===== */
+.color-grid{display:flex;gap:8px;flex-wrap:wrap}
+.color-swatch{
+    width:32px;height:32px;border-radius:50%;cursor:pointer;
+    border:2px solid transparent;transition:all 0.2s;
+}
+.color-swatch.active{border-color:#fff;box-shadow:0 0 12px rgba(255,255,255,0.3)}
+
+/* ===== 快捷方式管理 ===== */
+.shortcut-list{max-height:200px;overflow-y:auto}
+.shortcut-item{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;
+    border-radius:8px;margin-bottom:4px;cursor:pointer;
+    background:rgba(255,255,255,0.03);transition:all 0.2s;
+}
+.shortcut-item:active{background:rgba(255,255,255,0.08)}
+.shortcut-item.pinned{background:rgba(138,180,248,0.08);border:1px solid rgba(138,180,248,0.2)}
+.shortcut-icon{
+    width:32px;height:32px;border-radius:8px;
+    background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;
+    font-size:16px;flex-shrink:0;
+}
+.shortcut-name{font-size:13px;color:rgba(255,255,255,0.8);flex:1}
+.shortcut-pin{
+    font-size:16px;color:rgba(255,255,255,0.3);padding:4px;
+}
+.shortcut-item.pinned .shortcut-pin{color:#8ab4f8}
 </style>
 </head>
 <body>
@@ -167,6 +280,28 @@
             color:rgba(255,255,255,0.5);
         ">🔋 --%</div>
     </div>
+
+    <!-- 通知徽标 -->
+    <div id="notif-badge" onclick="window._toggleNotifications && window._toggleNotifications()">0</div>
+
+    <!-- 通知面板 -->
+    <div id="notification-panel">
+        <div id="notif-header">
+            <span id="notif-title">🔔 通知</span>
+            <div class="notif-actions">
+                <span class="notif-action-btn" onclick="window._clearAllNotifications && window._clearAllNotifications()">清除全部</span>
+                <span class="notif-action-btn" onclick="window._closeNotifications && window._closeNotifications()" style="font-size:18px;padding:4px 8px">✕</span>
+            </div>
+        </div>
+        <div id="notif-list"></div>
+    </div>
+
+    <!-- 搜索栏 -->
+    <div id="search-bar">
+        <input id="search-input" type="text" placeholder="🔍 搜索应用..." autocomplete="off" />
+        <div id="search-results"></div>
+    </div>
+
     <div id="context-menu" style="
         position:fixed; z-index:90; display:none; pointer-events:auto;
         background:#1a1a2e; border:1px solid rgba(255,255,255,0.2);
@@ -213,6 +348,20 @@
                     </div>
                 </div>
 
+                <!-- 主题色 -->
+                <div class="setting-group">
+                    <div class="setting-label">主题色</div>
+                    <div class="color-grid" id="color-grid">
+                        <div class="color-swatch active" data-color="#8ab4f8" style="background:#8ab4f8"></div>
+                        <div class="color-swatch" data-color="#ff6b6b" style="background:#ff6b6b"></div>
+                        <div class="color-swatch" data-color="#ffd43b" style="background:#ffd43b"></div>
+                        <div class="color-swatch" data-color="#69db7c" style="background:#69db7c"></div>
+                        <div class="color-swatch" data-color="#38d9a9" style="background:#38d9a9"></div>
+                        <div class="color-swatch" data-color="#da77f2" style="background:#da77f2"></div>
+                        <div class="color-swatch" data-color="#f783ac" style="background:#f783ac"></div>
+                        <div class="color-swatch" data-color="#ff922b" style="background:#ff922b"></div>
+                    </div>
+                </div>
 
                 <div class="setting-group">
                     <div class="setting-label">时间页面背景</div>
@@ -229,6 +378,18 @@
                         <button id="s-wallpaper-remove" class="settings-btn-danger">移除</button>
                     </div>
                 </div>
+
+                <!-- 通知设置 -->
+                <div class="setting-group">
+                    <div id="setting-notif-perm">
+                        <div>
+                            <div style="font-size:13px;color:rgba(255,255,255,0.8)">通知权限</div>
+                            <div class="toggle-desc">需要授权读取通知才能显示</div>
+                        </div>
+                        <button id="s-notif-grant" class="settings-btn" style="flex:none;padding:8px 16px;font-size:12px">授权</button>
+                    </div>
+                </div>
+
                 <div class="setting-group">
                     <div id="setting-fps">
                         <div>
@@ -250,6 +411,13 @@
                             <span class="toggle-slider"></span>
                         </label>
                     </div>
+                </div>
+
+                <!-- 快捷方式管理 -->
+                <div class="setting-group">
+                    <div class="setting-label">快捷方式管理 <span class="setting-val" id="shortcut-count">0个已钉选</span></div>
+                    <div class="toggle-desc" style="margin-bottom:8px">钉选的应用会优先显示在球体前方</div>
+                    <div class="shortcut-list" id="shortcut-list"></div>
                 </div>
             </div>
             <div id="settings-footer">
