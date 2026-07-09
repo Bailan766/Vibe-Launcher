@@ -1,7 +1,7 @@
 import * as THREE from 'three/webgpu';
 import { state } from './state.js';
 
-            const createGearTexture = () => {
+            export const createGearTexture = () => {
                 console.log('createGearTexture size:', ICON_RES);
                 const s = Math.max(16, ICON_RES), ca = document.createElement('canvas');
                 ca.width = s; ca.height = s;
@@ -44,13 +44,13 @@ import { state } from './state.js';
                 }
             })();
 
-            const drawCircleFrame = function(ctx, cx, cy, r, s) {
+            export const drawCircleFrame = function(ctx, cx, cy, r, s) {
                 ctx.strokeStyle = 'rgba(255,255,255,0.25)';
                 ctx.lineWidth = s * 0.012;
                 ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
             };
 
-            const drawCircleBackground = function(ctx, cx, cy, r, s) {
+            export const drawCircleBackground = function(ctx, cx, cy, r, s) {
                 var bg = _wallpaperImg;
                 if (bg) {
                     ctx.save();
@@ -64,7 +64,7 @@ import { state } from './state.js';
                 drawCircleFrame(ctx, cx, cy, r, s);
             };
 
-            const drawTimeCircleBackground = function(ctx, cx, cy, r, s) {
+            export const drawTimeCircleBackground = function(ctx, cx, cy, r, s) {
                 var bg = _timeBgImg || _wallpaperImg;
                 if (bg) {
                     ctx.save();
@@ -78,7 +78,7 @@ import { state } from './state.js';
                 drawCircleFrame(ctx, cx, cy, r, s);
             };
 
-            const createPlaceholderTexture = (appName, colorHex) => {
+            export const createPlaceholderTexture = (appName, colorHex) => {
                 console.log('createPlaceholderTexture', appName, 'size:', ICON_RES);
                 const s = Math.max(16, ICON_RES),
                     c = document.createElement('canvas');
@@ -113,7 +113,7 @@ import { state } from './state.js';
                 return tex;
             }
 
-            const createIconTextureFromImage = (img) => {
+            export const createIconTextureFromImage = (img) => {
                 const s = 512,
                     cx = s / 2,
                     cy = s / 2,
