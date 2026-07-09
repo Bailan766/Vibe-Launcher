@@ -404,7 +404,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
             (function preloadWallpaper() {
                 if (typeof NativeBridge !== 'undefined') {
                     try { var raw = NativeBridge.getWallpaperPath(); var r = JSON.parse(raw);
-                        if (r.success) { var img = new Image(); img.onload = function() { _wallpaperImg = img; updateTimeSpriteBgOnly(); }; img.src = r.path; }
+                        if (r.success) { document.body.style.backgroundImage = 'url(' + r.path + '?t=' + Date.now() + ')'; var img = new Image(); img.onload = function() { _wallpaperImg = img; updateTimeSpriteBgOnly(); }; img.src = r.path; }
                     } catch(e) {}
                     try { var raw2 = NativeBridge.getTimeBgPath(); var r2 = JSON.parse(raw2);
                         if (r2.success) { var img2 = new Image(); img2.onload = function() { _timeBgImg = img2; }; img2.src = r2.path; }
@@ -2236,7 +2236,8 @@ let _lastBatteryLevel = -1;
             window._onWallpaperPicked = function(json) {
                 try { var r = typeof json === 'string' ? JSON.parse(json) : json;
                     if (r.success) {
-                        document.body.style.backgroundImage = 'url(' + r.path + ')';
+                        var cb = '?t=' + Date.now();
+                        document.body.style.backgroundImage = 'url(' + r.path + cb + ')';
                         document.body.style.backgroundSize = 'cover';
                         document.body.style.backgroundPosition = 'center';
                         var img = new Image();
@@ -2248,7 +2249,7 @@ let _lastBatteryLevel = -1;
             (function initWallpaper() {
                 if (typeof NativeBridge !== 'undefined') {
                     try { var raw = NativeBridge.getWallpaperPath(); var r = JSON.parse(raw);
-                        if (r.success) { document.body.style.backgroundImage = 'url(' + r.path + ')'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center'; wallpaperPickBtn.textContent = '重新选择'; var img = new Image(); img.onload = function() { _wallpaperImg = img; }; img.src = r.path; }
+                        if (r.success) { document.body.style.backgroundImage = 'url(' + r.path + '?t=' + Date.now() + ')'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center'; wallpaperPickBtn.textContent = '重新选择'; var img = new Image(); img.onload = function() { _wallpaperImg = img; }; img.src = r.path; }
                     } catch(e) {}
                 }
             })();
@@ -2257,9 +2258,10 @@ let _lastBatteryLevel = -1;
                 if (typeof NativeBridge !== 'undefined') NativeBridge.pickWallpaper();
             };
             wallpaperRemoveBtn.onclick = function() {
-                document.body.style.backgroundImage = '';
+                document.body.style.backgroundImage = 'none';
                 _wallpaperImg = null;
                 updateTimeSpriteBgOnly();
+                renderTimePageToTexture();
                 wallpaperPickBtn.textContent = '选择图片';
                 if (typeof NativeBridge !== 'undefined') NativeBridge.removeWallpaper();
             };
