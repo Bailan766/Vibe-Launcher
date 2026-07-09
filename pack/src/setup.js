@@ -118,6 +118,17 @@ console.log("IIFE starting, THREE:", typeof THREE);
             state.DRAG_THRESHOLD = DRAG_THRESHOLD;
             state.LONG_PRESS_MS = LONG_PRESS_MS;
             state.MIN_ZOOM = MIN_ZOOM;
+
+            // ANIM_DURATION: from localStorage or default 250
+            let ANIM_DURATION = (function() {
+                try {
+                    const s = JSON.parse(localStorage.getItem('vibe-settings') || '{}');
+                    const v = parseInt(s.animSpeed);
+                    if (v >= 10 && v <= 5000) return v;
+                } catch(e) {}
+                return 250;
+            })();
+            state.ANIM_DURATION = ANIM_DURATION;
             state.SPEED_SAMPLES = SPEED_SAMPLES;
             let lastTap = 0, lastTapX = 0, lastTapY = 0, lastTapOnIcon = false, _prevTapOnIcon = false;
             state.lastTap = lastTap;

@@ -38,8 +38,8 @@ import { materialEasing } from './utils.js';
                         state.cancelableAction.rotDone = true; tryCommitCancelable();
                     }
                 });
-                state.startZoomAnimation(state.zoomTarget, state.ANIM_DURATION, function() {
-                    state.zoomLevel = state.zoomTarget; state.applyZoom();
+                state.startZoomAnimation(zoomTarget, state.ANIM_DURATION, function() {
+                    state.zoomLevel = zoomTarget; state.applyZoom();
                     if (state.cancelableAction && !state.cancelableAction.cancelled) {
                         state.cancelableAction.zoomDone = true; tryCommitCancelable();
                     }
