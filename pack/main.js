@@ -431,7 +431,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
                 c.width = s; c.height = s;
                 var ctx = c.getContext('2d');
                 var cx = s/2, cy = s/2, r = s * 0.44;
-                drawCircleBackground(ctx, cx, cy, r, s);
+                drawTimeCircleBackground(ctx, cx, cy, r, s);
                 var oldMap = timeSprite.material.map;
                 var tex = new THREE.CanvasTexture(c);
                 tex.minFilter = THREE.LinearFilter;
@@ -456,6 +456,20 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
             };
 
             const drawCircleBackground = function(ctx, cx, cy, r, s) {
+                var bg = _wallpaperImg;
+                if (bg) {
+                    ctx.save();
+                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.clip();
+                    ctx.drawImage(bg, cx-r, cy-r, r*2, r*2);
+                    ctx.restore();
+                } else {
+                    ctx.fillStyle = '#0a0e18';
+                    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+                }
+                drawCircleFrame(ctx, cx, cy, r, s);
+            };
+
+            const drawTimeCircleBackground = function(ctx, cx, cy, r, s) {
                 var bg = _timeBgImg || _wallpaperImg;
                 if (bg) {
                     ctx.save();
@@ -476,7 +490,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
                 c.height = s;
                 const ctx = c.getContext('2d');
 let cx = s / 2, cy = s / 2, r = s * 0.44;
-                drawCircleBackground(ctx, cx, cy, r, s);
+                drawTimeCircleBackground(ctx, cx, cy, r, s);
 
                 const tex = new THREE.CanvasTexture(c);
                 tex.minFilter = THREE.LinearFilter;
@@ -2096,7 +2110,7 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
                     const ctx = texCanvas.getContext('2d');
                     let cx = s/2, cy = s/2, r = s * 0.44;
 
-                    drawCircleBackground(ctx, cx, cy, r, s);
+                    drawTimeCircleBackground(ctx, cx, cy, r, s);
 
                     // 裁切圆内，绘制 DOM 截图
                     ctx.save();
