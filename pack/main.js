@@ -4,7 +4,7 @@ import { state } from './src/state.js';
 import { sphereCoulomb } from './src/sphere-coulomb.js';
 import { cubicBezier, animateValue, materialEasing, easeOutCubic } from './src/utils.js';
 import { createGearTexture, drawCircleFrame, drawCircleBackground, drawTimeCircleBackground, createPlaceholderTexture, createIconTextureFromImage } from './src/textures.js';
-import { enterTimeView, exitTimeView, returnToTimeView, syncTimeSpriteTexture, updateTimeSpriteBgOnly, renderTimePageToTexture, createTimeTexture } from './src/time.js';
+import { enterTimeView, exitTimeView, returnToTimeView, syncTimeSpriteTexture, updateTimeSpriteBgOnly, renderTimePageToTexture, createTimeTexture, stopTimeTextureUpdates, scheduleMinuteUpdate, timeTextureUpdateInterval } from './src/time.js';
 import html2canvas from 'html2canvas';
 window.THREE = THREE;
 
@@ -118,7 +118,7 @@ let zoomLevel = computeInitDistance(), defaultZoom = zoomLevel;
                 return SPHERE_RADIUS + distance;
             }
 
-let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = null, timeTextureUpdateInterval = null;
+let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = null;
             state.timeViewZoom = timeViewZoom;
             state.isInTimeView = isInTimeView;
             state.timeSprite = timeSprite;
