@@ -515,6 +515,7 @@ window._totalItems = totalItems;
                         sphereGroup.add(sprite);
                         sprites.push(sprite);
                         timeSprite = sprite;
+                        state.timeSprite = sprite;
                     } else {
                         const app = item.data;
                         const color = placeholderColors[item.colorIndex % placeholderColors.length];
