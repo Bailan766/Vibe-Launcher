@@ -57,7 +57,7 @@ import { materialEasing } from './utils.js';
                 const menu = document.getElementById('context-menu');
                 if (menu) menu.style.display = 'none';
                 NativeBridge.log("menu-closed");
-                contextMenuOpen = false;
+                state.contextMenuOpen = false;
                 state.longPressFired = false;
             }
 
@@ -108,14 +108,14 @@ import { materialEasing } from './utils.js';
                     }
                 }
                 // 可取消动作进行中：上滑跟手取消
-                if (cancelableAction && cancelableAction.phase === 'animating') {
+                if (state.cancelableAction && state.cancelableAction.phase === 'animating') {
                     state.cancelSwipeData = { pointerId: e.pointerId, startY: e.clientY, startZoom: state.zoomLevel, active: true, confirmed: false, startRot: state.sphereGroup.quaternion.clone() };
                     state.activePointerIds.add(e.pointerId);
                     state.cancelZoomAnimation();
                     return;
                 }
                 // 菜单打开时：点击画布关闭菜单，不触发拖动
-                if (contextMenuOpen) {
+                if (state.contextMenuOpen) {
                     const menu = document.getElementById('context-menu');
                     if (menu && menu.style.display !== 'none') {
                         const rect = menu.getBoundingClientRect();
@@ -181,7 +181,7 @@ state.updateMouse(e.clientX, e.clientY);
                                     state.longPressFired = true;
                                     state.isDragging = false;
                                     state.hasMoved = false;
-                                    contextMenuOpen = true;
+                                    state.contextMenuOpen = true;
                                     showContextMenu(spr, _lpX2, _lpY2);
                                 }
                             }
@@ -197,9 +197,9 @@ state.updateMouse(e.clientX, e.clientY);
             }
 
             const onPointerMove = (e) => {
-                if (contextMenuOpen) { state.activePointerIds.delete(e.pointerId); return; }
+                if (state.contextMenuOpen) { state.activePointerIds.delete(e.pointerId); return; }
                 // 可取消动作进行中 + 拖动 = 取消
-                if (cancelableAction && cancelableAction.phase === 'animating' && state.isDragging && state.hasMoved) {
+                if (state.cancelableAction && state.cancelableAction.phase === 'animating' && state.isDragging && state.hasMoved) {
                     state.cancelCurrentAction('drag'); state.recentSpeeds = []; state.hasMoved = false; state.isDragging = false; return;
                 }
                 state.updateMouse(e.clientX, e.clientY);
@@ -252,7 +252,7 @@ state.updateMouse(e.clientX, e.clientY);
                     const dy = state.cancelSwipeData.startY - e.clientY;  // positive = swipe up (zoom out)
                     const maxD = window.innerHeight * 0.6;
                     const cd = Math.max(-maxD, Math.min(maxD, dy));
-                    const targetZoom = cancelableAction ? cancelableAction.zoomTarget : state.defaultZoom;
+                    const targetZoom = state.cancelableAction ? state.cancelableAction.zoomTarget : state.defaultZoom;
                     const zrUp = Math.max(1, state.defaultZoom - targetZoom);  // zoom-out range
                     const zrDown = Math.max(0.01, state.cancelSwipeData.startZoom - targetZoom);  // zoom-in range
                     var newZ;
@@ -312,50 +312,50 @@ state.updateMouse(e.clientX, e.clientY);
             }
 
             const onPointerUp = (e) => {
-                if (contextMenuOpen) { state.activePointerIds.delete(e.pointerId); if (state.activePointerIds.size===0) document.body.style.cursor='default'; return; }
+                if (state.contextMenuOpen) { state.activePointerIds.delete(e.pointerId); if (state.activePointerIds.size===0) document.body.style.cursor='default'; return; }
                 try{NativeBridge.log("PU drag:"+state.isDragging+" move:"+state.hasMoved+" hov:"+!!state.hoveredSprite+" tv:"+state.isInTimeView);}catch(e){}
                 if (state.cancelSwipeData && state.cancelSwipeData.pointerId === e.pointerId && state.cancelSwipeData.active) {
                     state.activePointerIds.delete(e.pointerId);
                     const sd = state.cancelSwipeData; state.cancelSwipeData = null;
-                    if (sd.confirmed && cancelableAction && !cancelableAction.cancelled) {
+                    if (sd.confirmed && state.cancelableAction && !state.cancelableAction.cancelled) {
                         // 上滑超过35% → 取消展开；下滑超过35% → 直接打开
                         var progressUp = (state.zoomLevel - sd.startZoom) / Math.max(0.001, state.defaultZoom - sd.startZoom);
-                        var progressDown = (sd.startZoom - state.zoomLevel) / Math.max(0.001, sd.startZoom - (cancelableAction.zoomTarget || state.defaultZoom));
+                        var progressDown = (sd.startZoom - state.zoomLevel) / Math.max(0.001, sd.startZoom - (state.cancelableAction.zoomTarget || state.defaultZoom));
                         if (state.zoomLevel >= sd.startZoom && progressUp > 0.35) {
                             // 上滑超过阈值：取消
                             state.cancelCurrentAction('swipe');
                         } else if (state.zoomLevel < sd.startZoom && progressDown > 0.35) {
                             // 下滑超过阈值：直接完成展开
                             state.cancelZoomAnimation();
-                            state.startZoomAnimation(cancelableAction.zoomTarget, 150, function() {
-                                state.zoomLevel = cancelableAction.zoomTarget; state.applyZoom();
-                                if (cancelableAction && !cancelableAction.cancelled) {
-                                    cancelableAction.zoomDone = true; state.tryCommitCancelable();
+                            state.startZoomAnimation(state.cancelableAction.zoomTarget, 150, function() {
+                                state.zoomLevel = state.cancelableAction.zoomTarget; state.applyZoom();
+                                if (state.cancelableAction && !state.cancelableAction.cancelled) {
+                                    state.cancelableAction.zoomDone = true; state.tryCommitCancelable();
                                 }
                             });
-                            var targetSprite = cancelableAction.sprite;
+                            var targetSprite = state.cancelableAction.sprite;
                             var targetDir = targetSprite.position.clone().normalize();
                             var targetQuat = new THREE.Quaternion().setFromUnitVectors(targetDir, new THREE.Vector3(0, 0, 1));
                             state.startRotationAnimation(targetQuat, 150, function() {
-                                if (cancelableAction && !cancelableAction.cancelled) {
-                                    cancelableAction.rotDone = true; state.tryCommitCancelable();
+                                if (state.cancelableAction && !state.cancelableAction.cancelled) {
+                                    state.cancelableAction.rotDone = true; state.tryCommitCancelable();
                                 }
                             });
                         } else {
                             // 没超过阈值：弹回继续展开
                             if (!state.animFrameId) state.animFrameId = requestAnimationFrame(state.animate);
-                            state.startZoomAnimation(cancelableAction.zoomTarget, state.ANIM_DURATION, function() {
-                                state.zoomLevel = cancelableAction.zoomTarget; state.applyZoom();
-                                if (cancelableAction && !cancelableAction.cancelled) {
-                                    cancelableAction.zoomDone = true; state.tryCommitCancelable();
+                            state.startZoomAnimation(state.cancelableAction.zoomTarget, state.ANIM_DURATION, function() {
+                                state.zoomLevel = state.cancelableAction.zoomTarget; state.applyZoom();
+                                if (state.cancelableAction && !state.cancelableAction.cancelled) {
+                                    state.cancelableAction.zoomDone = true; state.tryCommitCancelable();
                                 }
                             });
-                            var targetSprite = cancelableAction.sprite;
+                            var targetSprite = state.cancelableAction.sprite;
                             var targetDir = targetSprite.position.clone().normalize();
                             var targetQuat = new THREE.Quaternion().setFromUnitVectors(targetDir, new THREE.Vector3(0, 0, 1));
                             state.startRotationAnimation(targetQuat, state.ANIM_DURATION, function() {
-                                if (cancelableAction && !cancelableAction.cancelled) {
-                                    cancelableAction.rotDone = true; state.tryCommitCancelable();
+                                if (state.cancelableAction && !state.cancelableAction.cancelled) {
+                                    state.cancelableAction.rotDone = true; state.tryCommitCancelable();
                                 }
                             });
                         }
@@ -366,7 +366,7 @@ state.updateMouse(e.clientX, e.clientY);
                     state.activePointerIds.delete(e.pointerId);
                     const sd = state.topSwipeData; state.topSwipeData = null;
                     if (sd.confirmed && state.zoomLevel <= sd.startTimeViewZoom + (state.defaultZoom - sd.startTimeViewZoom) * 0.5) {
-                        returnToTimeView();
+                        state.returnToTimeView();
                     } else {
                         state.startZoomAnimation(state.defaultZoom, state.ANIM_DURATION, function() { state.zoomLevel = state.defaultZoom; state.applyZoom(); });
                     }
@@ -381,9 +381,9 @@ state.updateMouse(e.clientX, e.clientY);
                     if (swipeData.confirmed) {
                         const currentZoom = state.zoomLevel;
                         const zoomRange = state.defaultZoom - state.timeViewZoom;
-                        const thresholdZoom = state.timeViewZoom + zoomRange * exitThresholdRatio;
+                        const thresholdZoom = state.timeViewZoom + zoomRange * state.exitThresholdRatio;
                         if (currentZoom >= thresholdZoom) {
-                            exitTimeView(true, function() {
+                            state.exitTimeView(true, function() {
                                 state.inertiaStrength = 0.4;
                                 state.infiniteInertia = true;
                                 let spinAxis;
@@ -463,7 +463,7 @@ state.updateMouse(e.clientX, e.clientY);
                                 state.canvas.style.pointerEvents = "none";
                             });
                         } else if (app && app.packageName === '__time__') {
-                            returnToTimeView();
+                            state.returnToTimeView();
                         } else if (app && !state.isInTimeView) {
                             startCancelableAction(state.hoveredSprite, targetQuat, appZoom, function() {
                                 if (app && state.nativeBridgeReady) {
@@ -494,9 +494,9 @@ state.updateMouse(e.clientX, e.clientY);
                     if (bsd.confirmed && state.zoomLevel > state.timeViewZoom + 0.1) {
                         const currentZoom = state.zoomLevel;
                         const zoomRange = state.defaultZoom - state.timeViewZoom;
-                        const thresholdZoom = state.timeViewZoom + zoomRange * exitThresholdRatio;
+                        const thresholdZoom = state.timeViewZoom + zoomRange * state.exitThresholdRatio;
                         if (currentZoom >= thresholdZoom) {
-                            exitTimeView(true);
+                            state.exitTimeView(true);
                         } else {
                             state.startZoomAnimation(state.timeViewZoom, state.ANIM_DURATION);
                         }
@@ -516,9 +516,9 @@ state.updateMouse(e.clientX, e.clientY);
                     if (bsd.confirmed && state.zoomLevel > state.timeViewZoom + 0.1) {
                         const currentZoom = state.zoomLevel;
                         const zoomRange = state.defaultZoom - state.timeViewZoom;
-                        const thresholdZoom = state.timeViewZoom + zoomRange * exitThresholdRatio;
+                        const thresholdZoom = state.timeViewZoom + zoomRange * state.exitThresholdRatio;
                         if (currentZoom >= thresholdZoom) {
-                            exitTimeView(true);
+                            state.exitTimeView(true);
                         } else {
                             state.startZoomAnimation(state.timeViewZoom, state.ANIM_DURATION);
                         }
@@ -588,9 +588,9 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
                 if (e.touches.length < 2) {
                     if (state.wasPinching && state.isInTimeView && state.zoomLevel > state.timeViewZoom + 0.15) {
                         const zoomRange = state.defaultZoom - state.timeViewZoom;
-                        const thresholdZoom = state.timeViewZoom + zoomRange * exitThresholdRatio;
+                        const thresholdZoom = state.timeViewZoom + zoomRange * state.exitThresholdRatio;
                         if (state.zoomLevel >= thresholdZoom) {
-                            exitTimeView(true);
+                            state.exitTimeView(true);
                         } else {
                             state.startZoomAnimation(state.timeViewZoom, state.ANIM_DURATION);
                         }
@@ -601,3 +601,5 @@ let dx = touches[0].clientX - touches[1].clientX, dy = touches[0].clientY - touc
             }
 
             
+
+export { checkHover, clearLongPressTimer, showContextMenu, hideContextMenu, clearHover, startInertiaFromSpeeds, resetAllPointers, onPointerDown, onPointerMove, onPointerUp, onPointerLeave, onPointerCancel, onWheel, onTouchStart, onTouchMove, onTouchEnd, getTouchDist, quatAngle, isInBottomZone, isInTopZone };

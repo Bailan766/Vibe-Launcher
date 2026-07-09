@@ -45,12 +45,16 @@ console.log("IIFE starting, THREE:", typeof THREE);
             state.canvas = canvas;
             state.sphereGroup = sphereGroup;
             const exitThresholdRatio = 0.35;
+            state.exitThresholdRatio = exitThresholdRatio;
             let cancelableAction = null;
+            state.cancelableAction = cancelableAction;
             let bottomSwipeData = null, topSwipeData = null, cancelSwipeData = null;
             state.bottomSwipeData = bottomSwipeData;
             state.topSwipeData = topSwipeData;
             state.cancelSwipeData = cancelSwipeData;
             // TOP_ZONE_RATIO, BOTTOM_ZONE_RATIO moved to config.js
+            state.TOP_ZONE_RATIO = TOP_ZONE_RATIO;
+            state.BOTTOM_ZONE_RATIO = BOTTOM_ZONE_RATIO;
 
             // 缩放动画
             let zoomTarget = null, zoomAnimStart = null, zoomAnimDuration = 0, zoomAnimElapsed = 0, zoomAnimStartVal = 0, zoomAnimEndVal = 0, zoomAnimCallback = null;
@@ -85,7 +89,9 @@ console.log("IIFE starting, THREE:", typeof THREE);
             state.nativeBridgeReady = state.nativeBridgeReady;
             // DRAG_THRESHOLD moved to config.js
             const prevScreen = new THREE.Vector2();
+            state.prevScreen = prevScreen;
             const inertiaQ = new THREE.Quaternion();
+            state.inertiaQ = inertiaQ;
             state.inertiaQ = inertiaQ;
             let inertiaStrength = 0, infiniteInertia = false;
             state.infiniteInertia = infiniteInertia;
@@ -97,11 +103,15 @@ console.log("IIFE starting, THREE:", typeof THREE);
             state.recentSpeeds = recentSpeeds;
             // SPEED_SAMPLES moved to config.js
             const activePointerIds = new Set();
+            state.activePointerIds = activePointerIds;
 
             const raycaster = new THREE.Raycaster();
             raycaster.params.Sprite = { threshold: 0.8 };
             const mouse = new THREE.Vector2();
+            state.raycaster = raycaster;
+            state.mouse = mouse;
             let hoveredSprite = null, longPressTimer = null, longPressFired = false, contextMenuOpen = false;
+            state.contextMenuOpen = contextMenuOpen;
             state.hoveredSprite = hoveredSprite;
             state.longPressTimer = longPressTimer;
             // LONG_PRESS_MS moved to config.js
@@ -173,6 +183,8 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
             const rotationQuat = new THREE.Quaternion();
             state.rotationQuat = rotationQuat;
 let isDragging = false, hasMoved = false;
+            state.isDragging = isDragging;
+            state.hasMoved = hasMoved;
 
             const animate = (timestamp) => {
                 const now = timestamp || performance.now();
@@ -200,6 +212,34 @@ let isDragging = false, hasMoved = false;
                     state.animFrameId = null;
                 }
             };
+            
+            // ========== 事件绑定 ==========
+            state.canvas.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+            // Restore DOM when finger lifts in time view (no exit happened)
+            var _pointerDownCount = 0;
+            state._pointerDownCount = _pointerDownCount;
+            window.addEventListener('pointerup', function onPointerUpTimeView() {
+                if (state.isInTimeView && !state.isDragging && activePointerIds.size === 0 && !state.bottomSwipeData && !state.topSwipeData) {
+                    var tp = document.getElementById('time-page');
+                    if (tp && _pointerDownCount > 0) {
+                        tp.style.visibility = 'visible'; tp.style.zIndex = '100'; tp.style.pointerEvents = 'none';
+                        state.syncTimeSpriteTexture();
+                    }
+                }
+            });
+            state.canvas.addEventListener('pointerleave', onPointerLeave);
+            window.addEventListener('pointercancel', onPointerCancel);
+            state.canvas.addEventListener('wheel', onWheel, { passive: false });
+            state.canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+            state.canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+            state.canvas.addEventListener('touchend', onTouchEnd);
+            state.canvas.addEventListener('touchcancel', function(e) {
+                onTouchEnd(e);
+                state.resetAllPointers();
+            });
+
             state.animate = animate; 
             // 首次启动
              state.animFrameId = requestAnimationFrame(animate);
@@ -212,3 +252,5 @@ let isDragging = false, hasMoved = false;
             let _texVersion = 0;
              init();
 })();
+
+state.resetAllPointers = resetAllPointers;

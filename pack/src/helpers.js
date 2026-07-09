@@ -32,11 +32,13 @@ let nx = (sx - rect.left) / rect.width, ny = (sy - rect.top) / rect.height, v = 
             window.addEventListener('resize', function() {
                 const w = window.innerWidth,
                     h = window.innerHeight;
-                state.renderer.setSize(w, h);
-                state.camera.aspect = w / h;
-                state.camera.updateProjectionMatrix();
-                state.defaultZoom = state.computeInitDistance();
-                state.timeViewZoom = state.computeTimeViewZoom();
+                if (state.renderer && state.camera) {
+                    state.renderer.setSize(w, h);
+                    state.camera.aspect = w / h;
+                    state.camera.updateProjectionMatrix();
+                    state.defaultZoom = state.computeInitDistance();
+                    state.timeViewZoom = state.computeTimeViewZoom();
+                }
                 if (!state.isInTimeView && state.zoomTarget === null) {
                     state.zoomLevel = state.defaultZoom;
                     state.applyZoom();
@@ -55,3 +57,4 @@ let nx = (sx - rect.left) / rect.width, ny = (sy - rect.top) / rect.height, v = 
                 }
             };
             state.wakeUp = wakeUp;
+state.updateMouse = updateMouse;

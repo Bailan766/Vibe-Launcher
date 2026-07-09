@@ -272,3 +272,7 @@ state.updateTimeSpriteBgOnly = updateTimeSpriteBgOnly;
 state.createTimeTexture = createTimeTexture;
 state.syncTimeSpriteTexture = syncTimeSpriteTexture;
 state.renderTimePageToTexture = renderTimePageToTexture;
+
+state.enterTimeView = enterTimeView;
+state.exitTimeView = exitTimeView;
+state.returnToTimeView = returnToTimeView;
