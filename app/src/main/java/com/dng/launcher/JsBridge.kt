@@ -492,6 +492,69 @@ class JsBridge(context: Context, webView: WebView) {
         }
     }
 
+    // ==================== 亮度控制 ====================
+
+    @JavascriptInterface
+    fun getBrightness(): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val brightness = android.provider.Settings.System.getInt(
+                ctx.contentResolver,
+                android.provider.Settings.System.SCREEN_BRIGHTNESS,
+                128
+            )
+            """{"success":true,"brightness":$brightness,"max":255}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}","brightness":128,"max":255}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun setBrightness(value: Int): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val clamped = value.coerceIn(0, 255)
+            android.provider.Settings.System.putInt(
+                ctx.contentResolver,
+                android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE,
+                android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL
+            )
+            android.provider.Settings.System.putInt(
+                ctx.contentResolver,
+                android.provider.Settings.System.SCREEN_BRIGHTNESS,
+                clamped
+            )
+            """{"success":true,"brightness":$clamped}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun canWriteSettings(): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false}"""
+            val canWrite = android.provider.Settings.System.canWrite(ctx)
+            """{"success":true,"canWrite":$canWrite}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
+    @JavascriptInterface
+    fun openWriteSettings(): String {
+        return try {
+            val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
+            val intent = Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS)
+            intent.data = Uri.parse("package:com.dng.launcher")
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ctx.startActivity(intent)
+            """{"success":true}"""
+        } catch (e: Exception) {
+            """{"success":false,"error":"${e.message}"}"""
+        }
+    }
+
     // ==================== 搜索功能 ====================
 
     @JavascriptInterface

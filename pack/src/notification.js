@@ -131,6 +131,73 @@ export function openNotificationPanel() {
     // 加载最新通知
     loadActiveNotifications();
     renderNotificationList();
+    // 初始化亮度
+    initBrightness();
+}
+
+// ==================== 亮度控制 ====================
+let brightnessReady = false;
+
+function initBrightness() {
+    const slider = document.getElementById('brightness-slider');
+    const valEl = document.getElementById('brightness-val');
+    if (!slider) return;
+
+    // 检查写入权限
+    try {
+        if (typeof NativeBridge !== 'undefined') {
+            const perm = JSON.parse(NativeBridge.canWriteSettings());
+            if (!perm.canWrite) {
+                // 没权限，显示提示
+                slider.disabled = true;
+                slider.title = '需要授权修改系统设置';
+                if (valEl) valEl.textContent = '需授权';
+                return;
+            }
+        }
+    } catch (e) {}
+
+    slider.disabled = false;
+
+    // 读取当前亮度
+    try {
+        if (typeof NativeBridge !== 'undefined') {
+            const raw = NativeBridge.getBrightness();
+            const result = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (result.success) {
+                slider.value = result.brightness;
+                if (valEl) valEl.textContent = Math.round(result.brightness / 255 * 100) + '%';
+            }
+        }
+    } catch (e) {}
+
+    if (!brightnessReady) {
+        brightnessReady = true;
+
+        // 拖动时实时调节
+        slider.addEventListener('input', function() {
+            const v = parseInt(this.value);
+            if (valEl) valEl.textContent = Math.round(v / 255 * 100) + '%';
+            try {
+                if (typeof NativeBridge !== 'undefined') {
+                    NativeBridge.setBrightness(v);
+                }
+            } catch (e) {}
+        });
+
+        // 点击亮度图标跳转系统设置
+        const icon = document.querySelector('.qs-icon');
+        if (icon) {
+            icon.style.cursor = 'pointer';
+            icon.addEventListener('click', function() {
+                try {
+                    if (typeof NativeBridge !== 'undefined') {
+                        NativeBridge.openWriteSettings();
+                    }
+                } catch (e) {}
+            });
+        }
+    }
 }
 
 export function closeNotificationPanel() {
