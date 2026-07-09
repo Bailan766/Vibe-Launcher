@@ -1,6 +1,6 @@
 import { state } from './state.js';
 
-            const updateBatteryFromNative = () => {
+            export const updateBatteryFromNative = () => {
                 try {
                     const bl = JSON.parse(NativeBridge.getBatteryLevel());
                     const level = bl.success ? bl.level : -1;
@@ -12,7 +12,7 @@ import { state } from './state.js';
                     }
                 } catch(e) {}
             };
-            const updateBatteryDisplay = () => {
+            export const updateBatteryDisplay = () => {
                 try {
                     const batteryEl = document.getElementById('time-page-battery');
                     if (!batteryEl) return;
@@ -23,7 +23,7 @@ import { state } from './state.js';
                     }
                 } catch(e) {}
             }
-            const startTimePageClock = () => {
+            export const startTimePageClock = () => {
                 const el = document.getElementById('time-page-clock');
                 if (!el) return;
                 const tick = () => {
@@ -36,8 +36,8 @@ import { state } from './state.js';
                     }
                 }
                 tick();
-                if (_timePageTimer) clearInterval(_timePageTimer);
-                _timePageTimer = setInterval(function() { tick(); }, 1000);
+                if (state._timePageTimer) clearInterval(state._timePageTimer);
+                state._timePageTimer = setInterval(function() { tick(); }, 1000);
                 updateBatteryFromNative();
             }
             startTimePageClock();

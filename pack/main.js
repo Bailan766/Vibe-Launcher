@@ -22,6 +22,7 @@ console.log("IIFE starting, THREE:", typeof THREE);
 
             // ========== 球面库仑斥力分布（Thomson 问题）==========
             const labelEl = document.getElementById('appLabel');
+            state.labelEl = labelEl;
             const loadingEl = document.getElementById('loadingIndicator');
             state.loadingEl = loadingEl;
 
@@ -113,6 +114,7 @@ console.log("IIFE starting, THREE:", typeof THREE);
             // LONG_PRESS_MS moved to config.js
             let lastTap = 0, lastTapX = 0, lastTapY = 0, lastTapOnIcon = false, _prevTapOnIcon = false;
             let _timePageTimer = null;
+            state._timePageTimer = _timePageTimer;
 
             const computeInitDistance = () => {
                 const w = window.innerWidth;
