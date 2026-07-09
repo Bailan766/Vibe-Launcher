@@ -141,9 +141,9 @@ class HexGridMath(
      */
     private fun roundAxial(qf: Float, rf: Float): AxialCoord {
         val sf = -qf - rf
-        var q = Math.round(qf)
-        var r = Math.round(rf)
-        var s = Math.round(sf)
+        var q = Math.round(qf).toFloat()
+        var r = Math.round(rf).toFloat()
+        var s = Math.round(sf).toFloat()
 
         val dq = Math.abs(q - qf)
         val dr = Math.abs(r - rf)
@@ -157,6 +157,6 @@ class HexGridMath(
         }
         // s 由约束自动满足
 
-        return AxialCoord(q, r)
+        return AxialCoord(q.toInt(), r.toInt())
     }
 }
