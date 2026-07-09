@@ -37,6 +37,11 @@ class JsBridge(context: Context, webView: WebView) {
     @Volatile private var appListCache: List<AppInfo>? = null
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun requestInstalledApps() {
         appListCache?.let {
             callback("_onAppsLoaded", gson.toJson(AppsResult(true, it)))
@@ -62,6 +67,11 @@ class JsBridge(context: Context, webView: WebView) {
                 callback("_onAppsError", "\"${e.message?.replace("\"", "\\\"")}\"")
             }
         }
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
@@ -106,6 +116,11 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun launchApp(packageName: String): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -120,6 +135,11 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun uninstallApp(packageName: String): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -130,6 +150,11 @@ class JsBridge(context: Context, webView: WebView) {
         } catch (e: Exception) {
             """{"success":false,"error":"${e.message}"}"""
         }
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
@@ -147,6 +172,11 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun getBatteryLevel(): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -156,6 +186,11 @@ class JsBridge(context: Context, webView: WebView) {
         } catch (e: Exception) {
             """{"success":false,"error":"${e.message}"}"""
         }
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
@@ -184,6 +219,11 @@ class JsBridge(context: Context, webView: WebView) {
     data class IconResult(val packageName: String, val iconUrl: String)
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun goBack(): String {
         return try {
             webViewRef.get()?.post {
@@ -193,6 +233,11 @@ class JsBridge(context: Context, webView: WebView) {
         } catch (e: Exception) {
             """{"success":false,"error":"${e.message}"}"""
         }
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
@@ -206,6 +251,11 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun setHotReload(enabled: Boolean): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -216,6 +266,11 @@ class JsBridge(context: Context, webView: WebView) {
         } catch (e: Exception) {
             """{"success":false,"error":"${e.message}"}"""
         }
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
@@ -245,6 +300,11 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun log(msg: String) {
         Log.d("VibeLauncher", "[JS] $msg")
         val ctx = contextRef.get() ?: return
@@ -252,6 +312,11 @@ class JsBridge(context: Context, webView: WebView) {
         try {
             logFile.appendText(java.time.Instant.now().toString() + " " + msg + "\n")
         } catch (_: Exception) {}
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
@@ -279,6 +344,11 @@ class JsBridge(context: Context, webView: WebView) {
     }
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun getWallpaperPath(): String {
         return try {
             val ctx = contextRef.get() ?: return """{"success":false,"error":"context lost"}"""
@@ -288,6 +358,11 @@ class JsBridge(context: Context, webView: WebView) {
         } catch (e: Exception) {
             """{"success":false,"error":"${e.message}"}"""
         }
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
@@ -321,6 +396,11 @@ class JsBridge(context: Context, webView: WebView) {
 
 
     @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
+    }
+
+    @JavascriptInterface
     fun pickTimeBg() {
         Log.d("VibeLauncher", "[timebg] pickTimeBg called")
         val ctx = contextRef.get() ?: return
@@ -328,6 +408,11 @@ class JsBridge(context: Context, webView: WebView) {
         webViewRef.get()?.post {
             activity.pickTimeBg()
         }
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
@@ -340,6 +425,11 @@ class JsBridge(context: Context, webView: WebView) {
         } catch (e: Exception) {
             """{"success":false,"error":"${e.message}"}"""
         }
+    }
+
+    @JavascriptInterface
+    fun crashTest() {
+        throw RuntimeException("手动触发的崩溃测试 - 这不是真正的Bug")
     }
 
     @JavascriptInterface
