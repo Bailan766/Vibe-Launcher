@@ -26,15 +26,8 @@ export let timeTextureUpdateInterval = null;
             };
             // 状态机：DOM可见 → bg-only，DOM隐藏 → full
             export const syncTimeSpriteTexture = function() {
-                console.log('[TEX-SYNC] called state.isInTimeView=' + state.isInTimeView + ' state._backProgress=' + state._backProgress);
-                var tp = document.getElementById('time-page');
-                if (tp && tp.style.visibility === 'visible') {
-                    console.log('[TIME-TEX] bg-only');
-                    updateTimeSpriteBgOnly();
-                } else {
-                    console.log('[TIME-TEX] full');
-                    renderTimePageToTexture();
-                }
+                console.log('[TEX-SYNC] called state.isInTimeView=' + state.isInTimeView);
+                updateTimeSpriteBgOnly();
             };
 
             const drawCircleBackground = function(ctx, cx, cy, r, s) {
@@ -235,14 +228,28 @@ let zoomComplete = false, rotationComplete = false;
                 var _wasHidden = page.style.visibility === 'hidden';
                 page.style.visibility = 'visible';
                 html2canvas(page, { scale: 1, useCORS: true, backgroundColor: null }).then(function(domCanvas) {
-                    // 只有当不是原生覆盖模式时才隐藏页面
-                    if (_wasHidden) page.style.visibility = 'hidden';
+                    // 检查是否用户已松手（DOM被pointerUpTimeView显示），在恢复隐藏之前保存
+                    const _userShowed = _wasHidden && page.style.visibility === 'visible';
+                    // 从缓存绘制背景圆，再覆盖DOM截图
                     const texCanvas = document.createElement('canvas');
                     texCanvas.width = s; texCanvas.height = s;
                     const ctx = texCanvas.getContext('2d');
                     let cx = s/2, cy = s/2, r = s * 0.44;
 
-                    drawTimeCircleBackground(ctx, cx, cy, r, s);
+                    // 如果用户已松手，不应用完整纹理
+                    if (_userShowed) {
+                        console.log('[TIME-TEX] skip full, user released');
+                        if (ver !== state._texVersion) return;
+                        updateTimeSpriteBgOnly();
+                        return;
+                    }
+                    // 恢复DOM隐藏（只有DOM原本隐藏时才恢复）
+                    if (_wasHidden) page.style.visibility = 'hidden';
+                    if (_bgCanvas) {
+                        ctx.drawImage(_bgCanvas, 0, 0);
+                    } else {
+                        drawTimeCircleBackground(ctx, cx, cy, r, s);
+                    }
 
                     // 裁切圆内，绘制 DOM 截图
                     ctx.save();

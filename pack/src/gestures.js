@@ -98,15 +98,7 @@ import { materialEasing } from './utils.js';
             }
 
             function onPointerDown(e) { try{NativeBridge.log('PDOWN');}catch(e){}
-                // Touch down in time view: hide DOM, start full texture render
-                if (state.isInTimeView) {
-                    var tp = document.getElementById('time-page');
-                    if (tp && tp.style.visibility === 'visible' && tp.style.zIndex === '100') {
-                        tp.style.visibility = 'hidden'; tp.style.zIndex = '-1';
-                        state._pointerDownCount++;
-                        state.syncTimeSpriteTexture();
-                    }
-                }
+                // No longer hide DOM on touch - always show bg-only texture
                 // 可取消动作进行中：上滑跟手取消
                 if (state.cancelableAction && state.cancelableAction.phase === 'animating') {
                     state.cancelSwipeData = { pointerId: e.pointerId, startY: e.clientY, startZoom: state.zoomLevel, active: true, confirmed: false, startRot: state.sphereGroup.quaternion.clone() };

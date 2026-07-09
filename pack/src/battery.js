@@ -3,11 +3,15 @@ import { state } from './state.js';
             export const updateBatteryFromNative = () => {
                 try {
                     const bl = JSON.parse(NativeBridge.getBatteryLevel());
+                    const ch = JSON.parse(NativeBridge.isCharging());
                     const level = bl.success ? bl.level : -1;
-                    if (level !== state._lastBatteryLevel) {
+                    const charging = ch.charging;
+                    // 检测电量或充电状态变化
+                    if (level !== state._lastBatteryLevel || charging !== state._lastCharging) {
                         state._lastBatteryLevel = level;
+                        state._lastCharging = charging;
                         updateBatteryDisplay();
-                        // 电量变化触发纹理更新
+                        // 变化触发纹理更新
                         state.syncTimeSpriteTexture();
                     }
                 } catch(e) {}
@@ -41,6 +45,16 @@ import { state } from './state.js';
                 updateBatteryFromNative();
             }
             startTimePageClock();
+            // 每1秒检查电池变化
+            setInterval(function() {
+                try {
+                    const bl = JSON.parse(NativeBridge.getBatteryLevel());
+                    const batteryEl = document.getElementById('time-page-battery');
+                    const displayVal = batteryEl ? batteryEl.textContent : 'no-el';
+                    console.log('[BATT] api=' + (bl.success ? bl.level : 'fail') + '% display=' + displayVal);
+                    state.updateBatteryFromNative();
+                } catch(e) { console.log('[BATT] error=' + e.message); }
+            }, 1000);
             // initial render handled in startTimePageClock
 
             document.addEventListener('visibilitychange', function() {

@@ -107,27 +107,6 @@ import { createSprites } from './sprites.js';
                         if (radios[ri].value === saved.layoutMode) radios[ri].checked = true;
                     }
                 }
-                // FPS显示开关
-                const fpsCb = document.getElementById('s-fps');
-                if (fpsCb) {
-                    fpsCb.checked = !!(saved.showFps);
-                    fpsCb.onchange = function() {
-                        state._fpsShow = this.checked;
-                        const fpsEl = document.getElementById('fps-counter');
-                        if (fpsEl) fpsEl.style.display = this.checked ? 'block' : 'none';
-                        // 即时保存
-                        try {
-                            const s = JSON.parse(localStorage.getItem('vibe-settings') || '{}');
-                            s.showFps = this.checked;
-                            localStorage.setItem('vibe-settings', JSON.stringify(s));
-                        } catch(e) {}
-                    };
-                    // 初始同步
-                    if (fpsCb.checked) {
-                        state._fpsShow = true;
-                        document.getElementById('fps-counter').style.display = 'block';
-                    }
-                }
 
                 backBtn.addEventListener('click', function() {
                     overlay.style.display = 'none';

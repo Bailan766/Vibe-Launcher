@@ -31,11 +31,11 @@ import { state } from './state.js';
             (function preloadWallpaper() {
                 if (typeof NativeBridge !== 'undefined') {
                     try { var raw = NativeBridge.getWallpaperPath(); var r = JSON.parse(raw);
-                        if (r.success) { document.body.style.backgroundImage = 'url(' + r.path + '?t=' + Date.now() + ')'; var img = new Image(); img.onload = function() { _wallpaperImg = img; state._wallpaperImg = img; state.updateTimeSpriteBgOnly(); }; img.src = r.path; }
+                        if (r.success) { document.body.style.backgroundImage = 'url(' + r.path + '?t=' + Date.now() + ')'; var img = new Image(); img.onload = function() { _wallpaperImg = img; state._wallpaperImg = img; state.updateTimeSpriteBgOnly(true); }; img.src = r.path; }
                     } catch(e) {}
                     try { var raw2 = NativeBridge.getTimeBgPath(); var r2 = JSON.parse(raw2);
                         console.log('[TBG] getTimeBgPath success='+r2.success+' path='+(r2.path||'none'));
-                        if (r2.success) { var img2 = new Image(); img2.onload = function() { console.log('[TBG] image loaded'); _timeBgImg = img2; state._timeBgImg = img2; state.updateTimeSpriteBgOnly(); }; img2.src = r2.path; } else { console.log('[TBG] no time bg set'); }
+                        if (r2.success) { var img2 = new Image(); img2.onload = function() { console.log('[TBG] image loaded'); _timeBgImg = img2; state._timeBgImg = img2; state.updateTimeSpriteBgOnly(true); }; img2.src = r2.path; } else { console.log('[TBG] no time bg set'); }
                     } catch(e) {}
                     // Update time bg button text after DOM ready
                     setTimeout(function() {

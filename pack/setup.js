@@ -3,7 +3,6 @@ import { init } from './init.js';
 import { initScene } from './scene.js';
 import { state } from './state.js';
 import { sphereCoulomb } from './sphere-coulomb.js';
-state.sphereCoulomb = sphereCoulomb;
 import { cubicBezier, animateValue, materialEasing, easeOutCubic } from './utils.js';
 state.materialEasing = materialEasing;
 import { createGearTexture, drawCircleFrame, drawCircleBackground, drawTimeCircleBackground, createPlaceholderTexture, createIconTextureFromImage } from './textures.js';
@@ -198,12 +197,6 @@ let isDragging = false, hasMoved = false;
                     _fpsLast = now;
                     const el = document.getElementById('fps-value');
                     if (el) el.textContent = fps;
-                    if (_fpsShow !== state._fpsShow) {
-                        _fpsShow = state._fpsShow;
-                        const ce = document.getElementById('fps-counter');
-                        if (ce) ce.style.display = _fpsShow ? 'block' : 'none';
-                        console.log('[FPS] visibility=' + _fpsShow);
-                    }
                 }
                 state.updateZoomAnimation(now);
                 state.updateRotationAnimation(now);
@@ -249,18 +242,6 @@ let isDragging = false, hasMoved = false;
                         });
 
             state.animate = animate; 
-            // 启动时读取FPS设置
-            try {
-                const _sfps = JSON.parse(localStorage.getItem('vibe-settings') || '{}');
-                const _fpsEl = document.getElementById('fps-counter');
-                console.log('[FPS] startup: showFps=' + _sfps.showFps + ' el=' + !!_fpsEl);
-                if (_sfps.showFps && _fpsEl) {
-                    _fpsEl.style.display = 'block';
-                    state._fpsShow = true;
-                    _fpsShow = true;
-                    console.log('[FPS] shown at startup');
-                }
-            } catch(e) { console.log('[FPS] startup error=' + e.message); }
             // 首次启动
              state.animFrameId = requestAnimationFrame(animate);
             // 任何输入都唤醒
