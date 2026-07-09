@@ -404,7 +404,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
             (function preloadWallpaper() {
                 if (typeof NativeBridge !== 'undefined') {
                     try { var raw = NativeBridge.getWallpaperPath(); var r = JSON.parse(raw);
-                        if (r.success) { var img = new Image(); img.onload = function() { _wallpaperImg = img; }; img.src = r.path; }
+                        if (r.success) { var img = new Image(); img.onload = function() { _wallpaperImg = img; updateTimeSpriteBgOnly(); }; img.src = r.path; }
                     } catch(e) {}
                     try { var raw2 = NativeBridge.getTimeBgPath(); var r2 = JSON.parse(raw2);
                         if (r2.success) { var img2 = new Image(); img2.onload = function() { _timeBgImg = img2; }; img2.src = r2.path; }
@@ -457,7 +457,7 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
             };
 
             const drawCircleBackground = function(ctx, cx, cy, r, s) {
-                var bg = _timeBgImg;
+                var bg = _timeBgImg || _wallpaperImg;
                 if (bg) {
                     ctx.save();
                     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.clip();
@@ -2227,7 +2227,7 @@ let _lastBatteryLevel = -1;
                         document.body.style.backgroundSize = 'cover';
                         document.body.style.backgroundPosition = 'center';
                         var img = new Image();
-                        img.onload = function() { _wallpaperImg = img; };
+                        img.onload = function() { _wallpaperImg = img; updateTimeSpriteBgOnly(); };
                         img.src = r.path;
                     }
                 } catch(e) {}
@@ -2235,7 +2235,7 @@ let _lastBatteryLevel = -1;
             (function initWallpaper() {
                 if (typeof NativeBridge !== 'undefined') {
                     try { var raw = NativeBridge.getWallpaperPath(); var r = JSON.parse(raw);
-                        if (r.success) { document.body.style.backgroundImage = 'url(' + r.path + ')'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center'; wallpaperPickBtn.textContent = '重新选择'; }
+                        if (r.success) { document.body.style.backgroundImage = 'url(' + r.path + ')'; document.body.style.backgroundSize = 'cover'; document.body.style.backgroundPosition = 'center'; wallpaperPickBtn.textContent = '重新选择'; var img = new Image(); img.onload = function() { _wallpaperImg = img; }; img.src = r.path; }
                     } catch(e) {}
                 }
             })();
@@ -2245,6 +2245,8 @@ let _lastBatteryLevel = -1;
             };
             wallpaperRemoveBtn.onclick = function() {
                 document.body.style.backgroundImage = '';
+                _wallpaperImg = null;
+                updateTimeSpriteBgOnly();
                 wallpaperPickBtn.textContent = '选择图片';
                 if (typeof NativeBridge !== 'undefined') NativeBridge.removeWallpaper();
             };
