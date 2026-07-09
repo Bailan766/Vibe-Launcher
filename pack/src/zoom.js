@@ -1,0 +1,134 @@
+import * as THREE from 'three/webgpu';
+import { state } from './state.js';
+import { BASE_SCALE, FOV_RAD } from './config.js';
+import { materialEasing } from './utils.js';
+
+            export const computeInitDistance = () => {
+                const w = window.innerWidth;
+                let h = window.innerHeight;
+                const shortEdgeFactor = Math.min(1, w / h);
+                const minVisible = state.SPHERE_DIAMETER / (2 * Math.tan(FOV_RAD / 2) * shortEdgeFactor);
+                return minVisible * 1.15;
+            }
+
+            export function applyZoom() { state.camera.position.z = state.zoomLevel; }
+            state.applyZoom = function() { state.camera.position.z = state.zoomLevel; };
+
+
+            export const computeTimeViewZoom = () => {
+                const R = BASE_SCALE * 0.44;
+                const fovHalfRad = THREE.MathUtils.degToRad(state.camera.fov / 2);
+                const aspect = window.innerWidth / window.innerHeight;
+                const halfDiagonalNDC = Math.sqrt(aspect * aspect + 1);
+                const distance = R / (Math.tan(fovHalfRad) * halfDiagonalNDC);
+                return state.SPHERE_RADIUS + distance;
+            }
+
+            export const startCancelableAction = (sprite, rotTarget, zoomTarget, onCommit) => {
+                cancelSwipeData = null; if (state.cancelableAction) cancelCurrentAction('superseded');
+                state.cancelableAction = {
+                    sprite: sprite, onCommit: onCommit, phase: 'animating',
+                    rotDone: false, zoomDone: false, cancelled: false,
+                    zoomTarget: zoomTarget
+                };
+                state.inertiaQ.identity(); state.inertiaStrength = 0; state.infiniteInertia = false;
+                state.startRotationAnimation(rotTarget, state.ANIM_DURATION, function() {
+                    if (state.cancelableAction && !state.cancelableAction.cancelled) {
+                        state.cancelableAction.rotDone = true; tryCommitCancelable();
+                    }
+                });
+                state.startZoomAnimation(zoomTarget, state.ANIM_DURATION, function() {
+                    state.zoomLevel = zoomTarget; state.applyZoom();
+                    if (state.cancelableAction && !state.cancelableAction.cancelled) {
+                        state.cancelableAction.zoomDone = true; tryCommitCancelable();
+                    }
+                });
+            }
+
+            export function tryCommitCancelable() {
+                const a = state.cancelableAction;
+                if (!a || a.cancelled || a.phase !== 'animating') return;
+                if (a.rotDone && a.zoomDone) {
+                    a.phase = 'committed';
+                    const cb = a.onCommit; state.cancelableAction = null;
+                    if (cb) cb();
+                }
+            }
+
+            export function cancelCurrentAction(reason) { cancelSwipeData = null;
+                if (!state.cancelableAction || state.cancelableAction.cancelled) return;
+                state.cancelableAction.cancelled = true;
+                try { NativeBridge.log('cancel:' + reason); } catch(e) {}
+                cancelZoomAnimation();
+                state.startZoomAnimation(state.defaultZoom, state.ANIM_DURATION, function() {
+                    state.zoomLevel = state.defaultZoom; state.applyZoom();
+                });
+                state.cancelableAction = null;
+            }
+
+            export function startZoomAnimation(targetVal, duration, callback) {
+                zoomAnimStart = performance.now();
+                state.wakeUp();
+                zoomAnimDuration = duration || 250;
+                zoomAnimStartVal = state.zoomLevel;
+                zoomAnimEndVal = targetVal;
+                zoomAnimElapsed = 0;
+                zoomTarget = targetVal;
+                zoomAnimCallback = callback || null;
+            }
+
+            export function cancelZoomAnimation() {
+                zoomTarget = null;
+                zoomAnimStart = null;
+                zoomAnimDuration = 0;
+                zoomAnimCallback = null;
+            }
+
+            export const updateZoomAnimation = (now) => {
+                if (zoomTarget === null) return;
+                zoomAnimElapsed = now - zoomAnimStart;
+                let t = Math.min(1, zoomAnimElapsed / zoomAnimDuration);
+                const eased = materialEasing(t);
+                state.zoomLevel = zoomAnimStartVal + (zoomAnimEndVal - zoomAnimStartVal) * eased;
+                state.applyZoom();
+                if (t >= 1) {
+                    state.zoomLevel = zoomAnimEndVal;
+                    state.applyZoom();
+                    const cb = zoomAnimCallback;
+                    cancelZoomAnimation();
+                    if (cb) cb();
+                }
+            }
+
+            export const updateRotationAnimation = (now) => {
+                if (!state.rotationAnimData) return;
+                const elapsed = now - state.rotationAnimData.startTime;
+                let t = Math.min(1, elapsed / state.rotationAnimData.duration);
+                const eased = materialEasing(t);
+                rotationQuat.copy(state.rotationAnimData.from).slerp(state.rotationAnimData.to, eased);
+                state.sphereGroup.quaternion.copy(rotationQuat);
+                if (t >= 1) {
+                    rotationQuat.copy(state.rotationAnimData.to);
+                    state.sphereGroup.quaternion.copy(rotationQuat);
+                    const cb = state.rotationAnimData.callback;
+                    state.rotationAnimData = null;
+                    if (cb) cb();
+                }
+            }
+
+            export function startRotationAnimation(targetQuat, duration, callback) {
+                state.rotationAnimData = {
+                    from: rotationQuat.clone(),
+                    to: targetQuat.clone(),
+                    startTime: performance.now(),
+                    duration: duration || state.ANIM_DURATION,
+                    callback: callback || null
+                };
+                if (callback && duration <= 0) {
+                    rotationQuat.copy(targetQuat);
+                    state.sphereGroup.quaternion.copy(rotationQuat);
+                    state.rotationAnimData = null;
+                    callback();
+                }
+            }
+

@@ -7,6 +7,7 @@ import { createGearTexture, drawCircleFrame, drawCircleBackground, drawTimeCircl
 import { initSettingsPanel } from './src/settings.js';
 import { checkHover, clearLongPressTimer, showContextMenu, hideContextMenu, clearHover, startInertiaFromSpeeds, resetAllPointers, onPointerDown, onPointerMove, onPointerUp, onPointerLeave, onPointerCancel, onWheel, onTouchStart, onTouchMove, onTouchEnd, isBusy, wakeUp, getTouchDist, quatAngle, isInBottomZone, isInTopZone } from './src/gestures.js';
 import { updateBatteryFromNative, updateBatteryDisplay, startTimePageClock } from './src/battery.js';
+import { computeInitDistance, applyZoom, computeTimeViewZoom, startCancelableAction, tryCommitCancelable, cancelCurrentAction, startZoomAnimation, cancelZoomAnimation, startRotationAnimation } from './src/zoom.js';
 import { BASE_SCALE, HOVER_SCALE, FOV_RAD, MIN_ZOOM, TOP_ZONE_RATIO, BOTTOM_ZONE_RATIO, DRAG_THRESHOLD, INERTIA_DECAY, INERTIA_FAST_DECAY, INERTIA_MIN, SPEED_SAMPLES, LONG_PRESS_MS } from './src/config.js';
 import { createSprites, clearAllSprites, tryLoadApps, createDemoApps } from './src/sprites.js';
 import { enterTimeView, exitTimeView, returnToTimeView, syncTimeSpriteTexture, updateTimeSpriteBgOnly, renderTimePageToTexture, createTimeTexture, stopTimeTextureUpdates, scheduleMinuteUpdate, timeTextureUpdateInterval } from './src/time.js';
@@ -116,29 +117,11 @@ console.log("IIFE starting, THREE:", typeof THREE);
             let _timePageTimer = null;
             state._timePageTimer = _timePageTimer;
 
-            const computeInitDistance = () => {
-                const w = window.innerWidth;
-                let h = window.innerHeight;
-                const shortEdgeFactor = Math.min(1, w / h);
-                const minVisible = SPHERE_DIAMETER / (2 * Math.tan(FOV_RAD / 2) * shortEdgeFactor);
-                return minVisible * 1.15;
-            }
 
 let zoomLevel = computeInitDistance(), defaultZoom = zoomLevel;
             state.defaultZoom = defaultZoom;
             state.zoomLevel = zoomLevel;
             camera.position.set(0, 0, zoomLevel);
-
-            function applyZoom() { camera.position.z = zoomLevel; }
-            state.applyZoom = function() { camera.position.z = state.zoomLevel; };
-            const computeTimeViewZoom = () => {
-                const R = BASE_SCALE * 0.44;
-                const fovHalfRad = THREE.MathUtils.degToRad(camera.fov / 2);
-                const aspect = window.innerWidth / window.innerHeight;
-                const halfDiagonalNDC = Math.sqrt(aspect * aspect + 1);
-                const distance = R / (Math.tan(fovHalfRad) * halfDiagonalNDC);
-                return SPHERE_RADIUS + distance;
-            }
             state.computeTimeViewZoom = computeTimeViewZoom;
 
 let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = null;
@@ -148,119 +131,19 @@ let timeViewZoom = computeTimeViewZoom(), isInTimeView = false, timeSprite = nul
 
             // ========== 可取消动作状态机 ==========
 
-            const startCancelableAction = (sprite, rotTarget, zoomTarget, onCommit) => {
-                cancelSwipeData = null; if (cancelableAction) cancelCurrentAction('superseded');
-                cancelableAction = {
-                    sprite: sprite, onCommit: onCommit, phase: 'animating',
-                    rotDone: false, zoomDone: false, cancelled: false,
-                    zoomTarget: zoomTarget
-                };
-                inertiaQ.identity(); inertiaStrength = 0; infiniteInertia = false;
-                startRotationAnimation(rotTarget, ANIM_DURATION, function() {
-                    if (cancelableAction && !cancelableAction.cancelled) {
-                        cancelableAction.rotDone = true; tryCommitCancelable();
-                    }
-                });
-                startZoomAnimation(zoomTarget, ANIM_DURATION, function() {
-                    zoomLevel = zoomTarget; applyZoom();
-                    if (cancelableAction && !cancelableAction.cancelled) {
-                        cancelableAction.zoomDone = true; tryCommitCancelable();
-                    }
-                });
-            }
-
-            function tryCommitCancelable() {
-                const a = cancelableAction;
-                if (!a || a.cancelled || a.phase !== 'animating') return;
-                if (a.rotDone && a.zoomDone) {
-                    a.phase = 'committed';
-                    const cb = a.onCommit; cancelableAction = null;
-                    if (cb) cb();
-                }
-            }
-
-            function cancelCurrentAction(reason) { cancelSwipeData = null;
-                if (!cancelableAction || cancelableAction.cancelled) return;
-                cancelableAction.cancelled = true;
-                try { NativeBridge.log('cancel:' + reason); } catch(e) {}
-                cancelZoomAnimation();
-                startZoomAnimation(defaultZoom, ANIM_DURATION, function() {
-                    zoomLevel = defaultZoom; applyZoom();
-                });
-                cancelableAction = null;
-            }
 
 
-            function startZoomAnimation(targetVal, duration, callback) {
-                zoomAnimStart = performance.now();
-                wakeUp();
-                zoomAnimDuration = duration || 250;
-                zoomAnimStartVal = zoomLevel;
-                zoomAnimEndVal = targetVal;
-                zoomAnimElapsed = 0;
-                zoomTarget = targetVal;
-                zoomAnimCallback = callback || null;
-            }
+
+
             state.startZoomAnimation = startZoomAnimation;
 
-            function cancelZoomAnimation() {
-                zoomTarget = null;
-                zoomAnimStart = null;
-                zoomAnimDuration = 0;
-                zoomAnimCallback = null;
-            }
             state.cancelZoomAnimation = cancelZoomAnimation;
 
             // ====== 三次贝塞尔求解器 ======
             // ====== 通用动画函数 ======
 
-            const updateZoomAnimation = (now) => {
-                if (zoomTarget === null) return;
-                zoomAnimElapsed = now - zoomAnimStart;
-                let t = Math.min(1, zoomAnimElapsed / zoomAnimDuration);
-                const eased = materialEasing(t);
-                zoomLevel = zoomAnimStartVal + (zoomAnimEndVal - zoomAnimStartVal) * eased;
-                applyZoom();
-                if (t >= 1) {
-                    zoomLevel = zoomAnimEndVal;
-                    applyZoom();
-                    const cb = zoomAnimCallback;
-                    cancelZoomAnimation();
-                    if (cb) cb();
-                }
-            }
 
-            const updateRotationAnimation = (now) => {
-                if (!rotationAnimData) return;
-                const elapsed = now - rotationAnimData.startTime;
-                let t = Math.min(1, elapsed / rotationAnimData.duration);
-                const eased = materialEasing(t);
-                rotationQuat.copy(rotationAnimData.from).slerp(rotationAnimData.to, eased);
-                sphereGroup.quaternion.copy(rotationQuat);
-                if (t >= 1) {
-                    rotationQuat.copy(rotationAnimData.to);
-                    sphereGroup.quaternion.copy(rotationQuat);
-                    const cb = rotationAnimData.callback;
-                    rotationAnimData = null;
-                    if (cb) cb();
-                }
-            }
 
-            function startRotationAnimation(targetQuat, duration, callback) {
-                rotationAnimData = {
-                    from: rotationQuat.clone(),
-                    to: targetQuat.clone(),
-                    startTime: performance.now(),
-                    duration: duration || ANIM_DURATION,
-                    callback: callback || null
-                };
-                if (callback && duration <= 0) {
-                    rotationQuat.copy(targetQuat);
-                    sphereGroup.quaternion.copy(rotationQuat);
-                    rotationAnimData = null;
-                    callback();
-                }
-            }
             state.startRotationAnimation = startRotationAnimation;
 
             // ========== 设置纹理 ==========
