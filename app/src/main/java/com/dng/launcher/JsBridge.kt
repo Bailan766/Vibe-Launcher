@@ -19,7 +19,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.lang.ref.WeakReference
 import java.text.Collator
-import java.util.Locale
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.os.BatteryManager
